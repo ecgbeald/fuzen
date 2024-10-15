@@ -1,5 +1,5 @@
-
-class ERROR():
+# there are cases where the asan would detect multiple errors
+class ERROR:
     BUS = "BUS"
     SEGV = "SEGV"
     OVERFLOW = "heap-buffer-overflow"

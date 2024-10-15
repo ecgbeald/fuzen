@@ -1,36 +1,50 @@
-import os, subprocess, time, shutil, sys
-from generate import mutate
-from parser import ERROR, parse_error
+import os, subprocess, time, shutil, argparse
+from pathlib import Path
+
+from generate import mutate, MANUAL_INPUT
+from parser import parse_error
 
 errors_seen = []
 
-if __name__ == "__main__":
+def arg_parse():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("SUT_PATH", type=Path)
+    parser.add_argument("INPUT_PATH", type=Path)
+    parser.add_argument("SEED", type=int)
+    return parser.parse_args()
 
-    if len(sys.argv) > 3:
-        sut_path = sys.argv[1]
-        if sut_path[-1] == "/":
-            sut_path = sut_path[:-1]
-        input_path = sys.argv[2]
-        seed = int(sys.argv[3])
-    else:
-        print("Usage: python3 main.py <sut_path> <input_path> <seed>")
-        exit(1)
+if __name__ == "__main__":
+    args = arg_parse()
+    # in PosixPath, strips last slash
+    sut_path = args.SUT_PATH
+    input_path = args.INPUT_PATH
+    seed = args.SEED
+
+    Path('./error_logs').mkdir(parents=True, exist_ok=True)
+    # keep 20 in here
+    Path('./fuzzed-tests').mkdir(parents=True, exist_ok=True)
 
     input_file = "input.cnf"
 
-    filenames = [f"inputs/{f}" for f in os.listdir(input_path)]
+    filenames = [str(input_path) + f"/{f}" for f in os.listdir(input_path)]
     
     start_time = time.time()
-    id = 0
-    while len(filenames) > 0:
-        f_name = filenames.pop(0)
-        shutil.copy(f_name, input_file)
-        print(f"Processing {f_name}")
+    idx = 0
 
-        # if not "inputs/" in f_name:
+    while len(filenames) > 0:
+        if idx < len(MANUAL_INPUT):
+            with open(input_file, "w") as f:
+                f.write(MANUAL_INPUT[idx])
+            print(f"{idx}: {MANUAL_INPUT[idx]}")
+        else:
+            f_name = filenames.pop(0)
+            shutil.copy(f_name, input_file)
+            print(f"Processing {f_name}")
+
+            # if not "inputs/" in f_name:
             # mutate(input_file)
 
-        mutate(input_file, seed)
+            mutate(input_file, seed)
 
         with open(input_file, "r") as f:
             if len(f.read()) == 0:
@@ -57,12 +71,12 @@ if __name__ == "__main__":
                     print("Error handled by SUT")
                     continue
             # save input
-            with open(f"fuzzed-tests/input_{id}.cnf", "w") as save_file:
+            with open(f"fuzzed-tests/input_{idx}.cnf", "w") as save_file:
                 with open(input_file, "r") as f:
                     save_file.write(f.read())
             
             # add mutated input to queue
-            filenames.append(f"fuzzed-tests/input_{id}.cnf")
+            filenames.append(f"fuzzed-tests/input_{idx}.cnf")
 
             # save output
             with open("error.log", "r") as f:
@@ -73,12 +87,12 @@ if __name__ == "__main__":
                 if error_type not in errors_seen:
                     errors_seen.append(error_type)
                     
-                    with open(f"fuzzed-tests/output_{id}.cnf", "w") as save_file:
+                    with open(f"error_logs/error_{idx}.cnf", "w") as save_file:
                         save_file.write(error)
                 
                 print(f"Errors seen: {errors_seen}")
                     
-            id += 1
+            idx += 1
 
         if time.time() - start_time > 2000:
             break
