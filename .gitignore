@@ -7,3 +7,8 @@ sat
 
 # Fuzzer outputs
 fuzzed-tests/
+
+venv
+input.cnf
+error.log
+**.cypython**

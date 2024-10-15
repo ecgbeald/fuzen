@@ -15,4 +15,5 @@ set -e # Fail script as soon as instruction fails
 # ./fuzz-sat /path/to/SUT /path/to/inputs mode seed as outlined in the
 # specification.
 
+chmod +x ./fuzz-sat
 exit 0
