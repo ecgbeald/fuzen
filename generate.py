@@ -33,15 +33,21 @@ def change_numbers(input):
     index = random.randint(0, len(input)-1)
     return input[:index] + input[index+1:]
 
+def randomize_lines(input, seed = None):
+    random.seed(seed)
+    lines = input.split('\n')
+    random.shuffle(lines)
+    return '\n'.join(lines)
+
 def mutate(input_file, seed = None):
     with open(input_file, "r") as f:
         input = f.read()
 
     random.seed(seed)
-    iterations = random.randint(1, 4)
+    iterations = random.randint(1, 100)
     output = input
     for i in range(iterations):
-        output = random.choice([delete_random_word, duplicate_line, delete_random_character, add_random_number])(output, seed)
+        output = random.choice([delete_random_word, duplicate_line, delete_random_character, randomize_lines])(output, seed)
 
     with open(input_file, "w") as f:
         f.write(output)

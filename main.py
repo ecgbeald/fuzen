@@ -52,6 +52,10 @@ if __name__ == "__main__":
                 log_file.write("Timeout\n")
 
         if interesting:
+            with open("error.log", "r") as f:
+                if len(f.read().strip()) == 0:
+                    print("Error handled by SUT")
+                    continue
             # save input
             with open(f"fuzzed-tests/input_{id}.cnf", "w") as save_file:
                 with open(input_file, "r") as f:
