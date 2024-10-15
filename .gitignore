@@ -11,4 +11,6 @@ fuzzed-tests/
 venv
 input.cnf
 error.log
-**.cypython**
+inputs/
+
+**.cpython-**

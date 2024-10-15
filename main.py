@@ -6,11 +6,14 @@ errors_seen = []
 
 if __name__ == "__main__":
 
-    if len(sys.argv) > 2:
+    if len(sys.argv) > 3:
         sut_path = sys.argv[1]
+        if sut_path[-1] == "/":
+            sut_path = sut_path[:-1]
         input_path = sys.argv[2]
+        seed = int(sys.argv[3])
     else:
-        print("Usage: python3 main.py <sut_path> <input_path>")
+        print("Usage: python3 main.py <sut_path> <input_path> <seed>")
         exit(1)
 
     input_file = "input.cnf"
@@ -27,7 +30,7 @@ if __name__ == "__main__":
         # if not "inputs/" in f_name:
             # mutate(input_file)
 
-        mutate(input_file, seed = 1234)
+        mutate(input_file, seed)
 
         with open(input_file, "r") as f:
             if len(f.read()) == 0:
@@ -36,7 +39,7 @@ if __name__ == "__main__":
         interesting = False
 
         with open("error.log", "w") as log_file:
-            process = subprocess.Popen([sut_path, input_file], stdout=subprocess.DEVNULL, stderr=log_file)
+            process = subprocess.Popen([f"{sut_path}/runsat.sh", input_file], stdout=subprocess.DEVNULL, stderr=log_file)
             try:
                 return_code = process.wait(timeout=20)
                 if return_code != 0:
