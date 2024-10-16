@@ -3,6 +3,7 @@ from pathlib import Path
 
 from generate import mutate, MANUAL_INPUT
 from parser import parse_error
+from coverage import get_coverage
 
 errors_seen = []
 
@@ -30,6 +31,7 @@ if __name__ == "__main__":
     
     start_time = time.time()
     idx = 0
+    best_coverage = {}
 
     while len(filenames) > 0:
         if idx < len(MANUAL_INPUT):
@@ -65,6 +67,19 @@ if __name__ == "__main__":
                 interesting = True
                 log_file.write("Timeout\n")
 
+        coverage = get_coverage(sut_path)
+        for filename in coverage.keys():
+            if filename in best_coverage:
+                difference = set(coverage[filename]) - set(best_coverage[filename])
+            else:
+                best_coverage[filename] = coverage[filename]
+                difference = set(coverage[filename])
+            if difference:
+                # new lines covered!
+                print("new coverage", filename, difference)
+                coverage_interesting = True
+                best_coverage[filename].extend(list(difference))
+
         if interesting:
             with open("error.log", "r") as f:
                 if len(f.read().strip()) == 0:
@@ -94,5 +109,5 @@ if __name__ == "__main__":
                     
             idx += 1
 
-        if time.time() - start_time > 2000:
+        if time.time() - start_time > 5:
             break
