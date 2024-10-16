@@ -2,6 +2,7 @@ import os, subprocess, time, shutil, argparse
 from pathlib import Path
 from generate import mutate, MANUAL_INPUT
 from parser import parse_error, ErrorType
+from coverage import get_coverage
 
 saved_errors = []
 
@@ -80,6 +81,7 @@ if __name__ == "__main__":
 
     start_time = time.time()
     idx = 0
+    best_coverage = {}
 
     while len(filenames) > 0:
         if idx < len(MANUAL_INPUT):
@@ -114,6 +116,19 @@ if __name__ == "__main__":
                 print("Process timed out and was killed.")
                 interesting = True
                 log_file.write("Timeout\n")
+
+        coverage = get_coverage(sut_path)
+        for filename in coverage.keys():
+            if filename in best_coverage:
+                difference = set(coverage[filename]) - set(best_coverage[filename])
+            else:
+                best_coverage[filename] = coverage[filename]
+                difference = set(coverage[filename])
+            if difference:
+                # new lines covered!
+                print("new coverage", filename, difference)
+                coverage_interesting = True
+                best_coverage[filename].extend(list(difference))
 
         if interesting:
             with open("error.log", "r") as f:
