@@ -1,5 +1,7 @@
 # there are cases where the asan would detect multiple errors
+import os
 from enum import Enum
+from difflib import SequenceMatcher
 
 class ErrorType(Enum):
     UNIDENTIFIED = 0,
@@ -8,6 +10,18 @@ class ErrorType(Enum):
     OVERFLOW = 3,
     ERROR_END = 4,
 
+def similar(a, b):
+    return SequenceMatcher(None, a, b).ratio()
+
+def is_error_different(error_message):
+    for files in os.listdir('error_logs'):
+        with open(os.path.join('error_logs', files)) as f:
+            error = f.read()
+            similarity = similar(error_message, error)
+            print(similarity)
+            if similarity < 0.3:
+                return True
+    return False
 
 def parse_error(error_message):
     if "AddressSanitizer:" in error_message:
@@ -24,3 +38,9 @@ def parse_error(error_message):
     #     return message.split(" ")[0].strip()
     # else:
     #     return error_message.strip()
+
+if __name__ == '__main__':
+    with open(os.path.join('error_logs', 'error_8.cng')) as f:
+        with open(os.path.join('error_logs', 'error_11.cng')) as f2:
+            similarity = similar(f.read(), f2.read())
+            print(similarity)

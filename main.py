@@ -1,7 +1,7 @@
 import os, subprocess, time, shutil, argparse
 from pathlib import Path
 from generate import mutate, MANUAL_INPUT
-from parser import parse_error, ErrorType
+from parser import parse_error, ErrorType, is_error_different
 from coverage import get_coverage
 
 saved_errors = []
@@ -24,11 +24,11 @@ def update_saved_errors(errortype, tmp_input_file):
     current_types = [0] * ErrorType.ERROR_END.value[0]
     for i in range(20):
         saved_error_type = saved_errors[i][1].value[0]
-        print(saved_error_type)
+        # print(saved_error_type)
         current_types[saved_error_type] += 1
         if saved_error_type == errortype.value[0]:
             new_type = False
-    print(new_type)
+    # print(new_type)
 
     new_priority = 0
 
@@ -150,6 +150,7 @@ if __name__ == "__main__":
                 # print(error)
                 error_type = parse_error(error)
                 print(f"Found error: {error_type}")
+                print(f'Is diffrent: {is_error_different(error)}')
                 update_saved_errors(error_type, input_file)
                 with open(f"error_logs/error_{idx}.cng", "w") as save_file:
                     save_file.write(error)
