@@ -49,7 +49,6 @@ def update_saved_errors(errortype, tmp_input_file):
         saved_errors[min_idx] = (new_priority, errortype)
         # copy to the original file
         shutil.copy(tmp_input_file, f"fuzzed-tests/input_{min_idx}.cnf")
-        print(saved_errors)
     else:
         print(f"unchanged")
 
@@ -75,39 +74,62 @@ if __name__ == "__main__":
     Path('./input_logs').mkdir(parents=True, exist_ok=True)
     init_saved_errors()
 
-    input_file = "input.cnf"
+    INPUT_FILE = "input.cnf"
 
+    # idea: keep filenames here, maintain a new queue for mutation
     filenames = [str(input_path) + f"/{f}" for f in os.listdir(input_path)]
+    # idea: keep files with more coverage in here so we can run mutation strategies based on generation list rather than the base filename list
+    generation = []
+    mutation = []
+    # consider add a chance for mutation to be back in the filenames if it is really interesting
+    MAX_MUTATIONS = 10
+    MAX_ITERATIONS = 5
 
-    start_time = time.time()
+    iteration = 0
+    gen = 0
+    # idx is the test no
     idx = 0
     best_coverage = {}
 
-    while len(filenames) > 0:
-        if idx < len(MANUAL_INPUT):
-            with open(input_file, "w") as f:
-                f.write(MANUAL_INPUT[idx])
-            print(f"{idx}: {MANUAL_INPUT[idx]}")
-        else:
-            f_name = filenames.pop(0)
-            shutil.copy(f_name, input_file)
-            print(f"Processing {f_name}")
+    start_time = time.time()
+    while True:
 
+        print("Generation:", generation)
+
+        if iteration >= MAX_ITERATIONS and len(generation) >= 3:
+            gen += 1
+            print("[#] Starting new Generation", gen)
+            mutation = []
+            filenames = generation
+
+        if len(mutation) >= MAX_MUTATIONS:
+            iteration += 1
+            print("[#] Starting iteration", iteration)
+            mutation = []
+
+        # run manual inputs first
+        if iteration == 0 and idx < len(MANUAL_INPUT):
+            with open(INPUT_FILE, "w") as f:
+                f.write(MANUAL_INPUT[idx])
+            print(f"Index {idx}: manual input")
+        else:
+            f_name = filenames[idx % len(filenames)]
+            shutil.copy(f_name, INPUT_FILE)
+            print(f"Processing {f_name}")
             # if not "inputs/" in f_name:
             # mutate(input_file)
+            mutate(INPUT_FILE, seed)
 
-            mutate(input_file, seed)
-
-        with open(input_file, "r") as f:
+        with open(INPUT_FILE, "r") as f:
             if len(f.read()) == 0:
                 continue
 
         interesting = False
 
         with open("error.log", "w") as log_file:
-            process = subprocess.Popen([f"{sut_path}/runsat.sh", input_file], stdout=subprocess.DEVNULL, stderr=log_file)
+            process = subprocess.Popen([f"{sut_path}/runsat.sh", INPUT_FILE], stdout=subprocess.DEVNULL, stderr=log_file)
             try:
-                return_code = process.wait(timeout=20)
+                return_code = process.wait(timeout=5)
                 if return_code != 0:
                     print("Process returned non-zero exit code.")
                     interesting = True
@@ -117,6 +139,7 @@ if __name__ == "__main__":
                 interesting = True
                 log_file.write("Timeout\n")
 
+        coverage_interesting = False
         coverage = get_coverage(sut_path)
         for filename in coverage.keys():
             if filename in best_coverage:
@@ -130,7 +153,8 @@ if __name__ == "__main__":
                 coverage_interesting = True
                 best_coverage[filename].extend(list(difference))
 
-        if interesting:
+        # need to change what is interesting
+        if interesting and len(mutation) <= MAX_MUTATIONS:
             with open("error.log", "r") as f:
                 if len(f.read().strip()) == 0:
                     print("Error handled by SUT")
@@ -138,11 +162,13 @@ if __name__ == "__main__":
             # save input
 
             with open(f"input_logs/input_{idx}.cnf", "w") as save_file:
-                with open(input_file, "r") as f:
+                with open(INPUT_FILE, "r") as f:
                     save_file.write(f.read())
 
             # add mutated input to queue
-            filenames.append(f"input_logs/input_{idx}.cnf")
+            mutation.append(f"input_logs/input_{idx}.cnf")
+            if coverage_interesting:
+                generation.append(f"input_logs/input_{idx}.cnf")
 
             # save output
             with open("error.log", "r") as f:
@@ -151,19 +177,10 @@ if __name__ == "__main__":
                 error_type = parse_error(error)
                 print(f"Found error: {error_type}")
                 print(f'Is diffrent: {is_error_different(error)}')
-                update_saved_errors(error_type, input_file)
+                update_saved_errors(error_type, INPUT_FILE)
                 with open(f"error_logs/error_{idx}.cng", "w") as save_file:
                     save_file.write(error)
-                # print(f"Found error: {error_type}")
-                # if error_type not in errors_seen:
-                #     errors_seen.append(error_type)
-                #
-                #     with open(f"error_logs/error_{idx}.cnf", "w") as save_file:
-                #         save_file.write(error)
-                #
-                # print(f"Errors seen: {errors_seen}")
 
-            idx += 1
-
-        if time.time() - start_time > 2000:
+        idx += 1
+        if time.time() - start_time > 60:
             break
