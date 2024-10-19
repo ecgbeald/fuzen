@@ -22,7 +22,7 @@ def get_coverage(solver_path):
     original_directory = os.getcwd()
     os.chdir(solver_path)
     for solver_file in solver_files:
-        process = subprocess.Popen(["gcov", solver_file + ".gcno"])
+        process = subprocess.Popen(["gcov", solver_file + ".gcno"], stdout=subprocess.DEVNULL)
         process.wait()
         lines = process_coverage_file(solver_file + ".c.gcov")
         answer[solver_file] = lines

@@ -18,10 +18,9 @@ def is_error_different(error_message):
         with open(os.path.join('error_logs', files)) as f:
             error = f.read()
             similarity = similar(error_message, error)
-            print(similarity)
-            if similarity < 0.3:
-                return True
-    return False
+            if similarity > 0.3:
+                return False
+    return True
 
 def parse_error(error_message):
     if "AddressSanitizer:" in error_message:

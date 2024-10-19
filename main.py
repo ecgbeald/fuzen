@@ -1,7 +1,7 @@
 import os, subprocess, time, shutil, argparse
 from pathlib import Path
 from generate import mutate, MANUAL_INPUT
-from parser import parse_error, ErrorType, is_error_different
+from parser_1 import parse_error, ErrorType, is_error_different
 from coverage import get_coverage
 
 saved_errors = []
@@ -129,7 +129,7 @@ if __name__ == "__main__":
         with open("error.log", "w") as log_file:
             process = subprocess.Popen([f"{sut_path}/runsat.sh", INPUT_FILE], stdout=subprocess.DEVNULL, stderr=log_file)
             try:
-                return_code = process.wait(timeout=5)
+                return_code = process.wait(timeout=15)
                 if return_code != 0:
                     print("Process returned non-zero exit code.")
                     interesting = True
@@ -175,12 +175,16 @@ if __name__ == "__main__":
                 error = f.read()
                 # print(error)
                 error_type = parse_error(error)
+                different = is_error_different(error)
                 print(f"Found error: {error_type}")
-                print(f'Is diffrent: {is_error_different(error)}')
-                update_saved_errors(error_type, INPUT_FILE)
-                with open(f"error_logs/error_{idx}.cng", "w") as save_file:
-                    save_file.write(error)
+                print(f'Is diffrent: {different}')
+                if different:
+                    update_saved_errors(error_type, INPUT_FILE)
+                    with open(f"error_logs/error_{idx}.cng", "w") as save_file:
+                        save_file.write(error)
 
         idx += 1
-        if time.time() - start_time > 60:
+        if time.time() - start_time > 1000:
             break
+
+        print()
