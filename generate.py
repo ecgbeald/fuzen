@@ -60,8 +60,29 @@ def add_infeasible_clause(input_content, seed = None):
 
 def duplicate_many_lines(input_content, seed = None):
     random.seed(seed)
-    [one, lines] = input_content.split('\n', 1)
-    return one + lines * 2
+    lines = input_content.split('\n')
+    line = lines[random.randint(0, len(lines)-1)]
+    lines.insert(random.randint(0, len(lines)-1), line * 2000)
+    return '\n'.join(lines)
+
+def is_number(n):
+    try:
+        int(n)
+        return True
+    except ValueError:
+        return False
+    
+def flip_random_number(input_content, seed = None):
+    random.seed(seed)
+    numbers = input_content.split('\n')
+    number = 0
+    while not is_number(number) or number == 0:
+        index = random.randint(0, len(numbers) - 1)
+        number = numbers[index]
+    if "-" in number:
+        return input_content[:index] + number[1:] + input_content[index+1:]
+    else:
+        return input_content[:index] + "-" + number + input_content[index+1:]
 
 def mutate(input_file, seed = None):
     with open(input_file, "r") as f:
@@ -72,8 +93,8 @@ def mutate(input_file, seed = None):
     output = input_content
     for i in range(iterations):
         output = random.choices(
-                        [delete_random_number, duplicate_line, delete_random_character, randomize_lines, add_trivial_clause, add_infeasible_clause], 
-                        weights = [0.05, 0.05, 0.05, 0.1, 0.05, 0.7],
+                        [delete_random_number, duplicate_line, delete_random_character, randomize_lines, add_trivial_clause, add_infeasible_clause, duplicate_many_lines, flip_random_number], 
+                        weights = [0.05, 0.05, 0.05, 0.1, 0.05, 0.4, 0.1, 0.2],
                         k = 1
                         )[0](output, seed)
 
