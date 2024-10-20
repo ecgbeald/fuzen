@@ -12,5 +12,7 @@ venv
 input.cnf
 error.log
 inputs/
+error_logs/
+input_logs/
 
 **.cpython-**

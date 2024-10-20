@@ -93,10 +93,19 @@ def mutate(input_file, seed = None):
     output = input_content
     for i in range(iterations):
         output = random.choices(
-                        [delete_random_number, duplicate_line, delete_random_character, randomize_lines, add_trivial_clause, add_infeasible_clause, duplicate_many_lines, flip_random_number], 
-                        weights = [0.05, 0.05, 0.05, 0.1, 0.05, 0.4, 0.1, 0.2],
-                        k = 1
-                        )[0](output, seed)
+            [
+                delete_random_number, 
+                duplicate_line, 
+                delete_random_character, 
+                randomize_lines, 
+                add_trivial_clause, 
+                add_infeasible_clause, 
+                duplicate_many_lines, 
+                flip_random_number
+            ], 
+            weights = [0.05, 0.05, 0.05, 0.1, 0.05, 0.4, 0.1, 0.2],
+            k = 1
+        )[0](output, seed)
 
     with open(input_file, "w") as f:
         f.write(output)
