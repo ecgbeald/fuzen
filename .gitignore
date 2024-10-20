@@ -10,6 +10,7 @@ fuzzed-tests/
 
 venv
 input.cnf
+input_*.cnf
 error.log
 inputs/
 error_logs/

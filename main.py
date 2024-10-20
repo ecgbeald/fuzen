@@ -1,4 +1,4 @@
-import os, subprocess, time, shutil, argparse
+import os, subprocess, time, shutil, argparse, threading, uuid
 from pathlib import Path
 from generate import mutate, MANUAL_INPUT
 from parser_1 import parse_error, ErrorType, is_error_different
@@ -17,6 +17,16 @@ def arg_parse():
 def init_saved_errors():
     for i in range(20):
         saved_errors.append((0, ErrorType.UNIDENTIFIED))
+
+def delete_files(inputs = False, error_logs = False, input_logs = False):
+    if inputs:
+        for f in os.listdir():
+            if f.startswith("input_") and f.endswith(".cnf"):
+                os.remove(f)
+    if error_logs:
+        shutil.rmtree("error_logs")
+    if input_logs:
+        shutil.rmtree("input_logs")
 
 # update errors base on priority
 def update_saved_errors(errortype, tmp_input_file):
@@ -52,29 +62,10 @@ def update_saved_errors(errortype, tmp_input_file):
     else:
         print(f"unchanged")
 
+def main(sut_path, input_path, seed):
 
-# if __name__ == "__main__":
-#     init_saved_errors()
-#     for i in range(25):
-#         update_saved_errors(ErrorType.SEGV, "input.cnf")
-#     for i in range(25):
-#         update_saved_errors(ErrorType.UNIDENTIFIED, "input.cnf")
-
-
-if __name__ == "__main__":
-    args = arg_parse()
-    # in PosixPath, strips last slash
-    sut_path = args.SUT_PATH
-    input_path = args.INPUT_PATH
-    seed = args.SEED
-
-    Path('./error_logs').mkdir(parents=True, exist_ok=True)
-    # keep 20 in here
-    Path('./fuzzed-tests').mkdir(parents=True, exist_ok=True)
-    Path('./input_logs').mkdir(parents=True, exist_ok=True)
-    init_saved_errors()
-
-    INPUT_FILE = "input.cnf"
+    thread_id = threading.get_ident()
+    INPUT_FILE = f"input_{thread_id}.cnf"
 
     # idea: keep filenames here, maintain a new queue for mutation
     filenames = [str(input_path) + f"/{f}" for f in os.listdir(input_path)]
@@ -88,11 +79,12 @@ if __name__ == "__main__":
     iteration = 0
     gen = 0
     # idx is the test no
-    idx = 0
+    idx = -1
     best_coverage = {}
 
     start_time = time.time()
     while True:
+        idx += 1
 
         print("Generation:", generation)
 
@@ -108,6 +100,7 @@ if __name__ == "__main__":
             mutation = []
 
         # run manual inputs first
+        print(f"Index {idx}: {iteration} iteration")
         if iteration == 0 and idx < len(MANUAL_INPUT):
             with open(INPUT_FILE, "w") as f:
                 f.write(MANUAL_INPUT[idx])
@@ -116,8 +109,6 @@ if __name__ == "__main__":
             f_name = filenames[idx % len(filenames)]
             shutil.copy(f_name, INPUT_FILE)
             print(f"Processing {f_name}")
-            # if not "inputs/" in f_name:
-            # mutate(input_file)
             mutate(INPUT_FILE, seed)
 
         with open(INPUT_FILE, "r") as f:
@@ -155,20 +146,24 @@ if __name__ == "__main__":
 
         # need to change what is interesting
         if interesting and len(mutation) <= MAX_MUTATIONS:
+            
+            input_id = f"{thread_id}_{idx}"
+
             with open("error.log", "r") as f:
-                if len(f.read().strip()) == 0:
+                error = f.read().strip()
+                if len(error) == 0 or "Sanitizer" not in error:
                     print("Error handled by SUT")
                     continue
             # save input
 
-            with open(f"input_logs/input_{idx}.cnf", "w") as save_file:
+            with open(f"input_logs/input_{input_id}.cnf", "w") as save_file:
                 with open(INPUT_FILE, "r") as f:
                     save_file.write(f.read())
 
             # add mutated input to queue
-            mutation.append(f"input_logs/input_{idx}.cnf")
+            mutation.append(f"input_logs/input_{input_id}.cnf")
             if coverage_interesting:
-                generation.append(f"input_logs/input_{idx}.cnf")
+                generation.append(f"input_logs/input_{input_id}.cnf")
 
             # save output
             with open("error.log", "r") as f:
@@ -180,11 +175,41 @@ if __name__ == "__main__":
                 print(f'Is diffrent: {different}')
                 if different:
                     update_saved_errors(error_type, INPUT_FILE)
-                    with open(f"error_logs/error_{idx}.cng", "w") as save_file:
+                    with open(f"error_logs/error_{input_id}.cng", "w") as save_file:
                         save_file.write(error)
 
-        idx += 1
-        if time.time() - start_time > 1000:
+        if time.time() - start_time > 120:
             break
 
         print()
+
+if __name__ == "__main__":
+    args = arg_parse()
+
+    sut_path = args.SUT_PATH
+    input_path = args.INPUT_PATH
+    seed = args.SEED
+
+    delete_files(
+        inputs = True, 
+        error_logs = True, 
+        input_logs = True
+    )
+
+    Path('./error_logs').mkdir(parents=True, exist_ok=True)
+    # keep 20 in here
+    Path('./fuzzed-tests').mkdir(parents=True, exist_ok=True)
+    Path('./input_logs').mkdir(parents=True, exist_ok=True)
+
+    init_saved_errors()
+    
+    num_threads = 4
+
+    threads: list[threading.Thread] = []
+    for _ in range(num_threads):
+        thread = threading.Thread(target=main, args=(sut_path, input_path, seed))
+        threads.append(thread)
+        thread.start()
+    
+    for thread in threads:
+        thread.join()
