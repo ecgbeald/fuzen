@@ -1,8 +1,6 @@
 import shutil
 from parser import *
 
-SAVED_ERRORS = [(0, set(), set()) for _ in range(20)]
-
 def unseen_errors(error_input):
     return [error for error in split_errors(error_input) if categorise_error(error) == set() and error.strip() != ""]
 
