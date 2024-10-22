@@ -42,6 +42,21 @@ def get_coverage(solver_path):
     os.chdir(original_directory)
     return (executed, totals)
 
+def compare_coverage(best_coverage, coverage):
+    new_coverage = False
+    for filename in coverage.keys():
+        if filename in best_coverage:
+            difference = coverage[filename] - best_coverage[filename]
+        else:
+            best_coverage[filename] = coverage[filename]
+            difference = coverage[filename]
+        if difference:
+            # new lines covered!
+            print("new coverage", filename, difference)
+            new_coverage = True
+            best_coverage[filename] = best_coverage[filename].union(difference)
+    return (new_coverage, best_coverage)
+
 def print_coverage_info(executed, totals):
     print("\nCoverage information:\n")
     total_executed = 0

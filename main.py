@@ -30,14 +30,12 @@ if __name__ == "__main__":
 
     INPUT_FILE = "input.cnf"
 
-    # idea: keep filenames here, maintain a new queue for mutation
+    # idea: keep filenames here, maintain a new queue for to_mutate
     filenames = [str(input_path) + f"/{f}" for f in os.listdir(input_path)]
-    # idea: keep files with more coverage in here so we can run mutation strategies based on generation list rather than the base filename list
-    generation = []
-    mutation = []
-    # consider add a chance for mutation to be back in the filenames if it is really interesting
-    MAX_MUTATIONS = 10
-    MAX_ITERATIONS = 5
+    # interesting files we want to mutate
+    to_mutate = []
+    # consider add a chance for to_mutate to be back in the filenames if it is reallyerrors
+    MAX_MUTATIONS = 5
 
     iteration = 0
     gen = 0
@@ -47,33 +45,24 @@ if __name__ == "__main__":
 
     start_time = time.time()
     while True:
+        print(idx)
 
-        print("Generation:", generation)
+        print("To mutate:", to_mutate)
 
-        if iteration >= MAX_ITERATIONS and len(generation) >= 3:
-            gen += 1
-            print("[#] Starting new Generation", gen)
-            mutation = []
-            filenames = generation
-
-        if len(mutation) >= MAX_MUTATIONS:
-            iteration += 1
-            print("[#] Starting iteration", iteration)
-            mutation = []
-
-        # Generate an input
-        generate(INPUT_FILE, rng)
-        if rng.random() < 0.2:
+        # If no inputs, generate an input
+        if len(to_mutate) <= 0:
+            INPUT_FILE = f"input_logs/input_{idx}.cnf"
+            generate(INPUT_FILE, rng)
+            # maybe mutate
+            if rng.random() < 0.7:
+                mutate(INPUT_FILE, rng)
+        else:
+            INPUT_FILE = to_mutate.pop(0)
+            print("Mutating", INPUT_FILE)
             mutate(INPUT_FILE, rng)
+        
 
-        with open(INPUT_FILE, "r") as f:
-            cnf = f.read()
-            if len(cnf) == 0:
-                continue
-            else:
-                print(f"Input Hash: {get_hash(cnf)}")
-
-        interesting = False
+        errors = False
 
         with open("error.log", "w") as log_file:
             process = subprocess.Popen([
@@ -85,48 +74,47 @@ if __name__ == "__main__":
                 return_code = process.wait(timeout=10)
                 if return_code != 0:
                     print("Process returned non-zero exit code.")
-                    interesting = True
+                    errors = True
                 else:
                     print("Process returned zero exit code.")
             except subprocess.TimeoutExpired:
                 process.terminate()
                 print("Process timed out and was killed.")
-                interesting = True
+                errors = True
                 log_file.write("Timeout\n")
 
-        coverage_interesting = False
+        # check for new coverage
         coverage, num_lines = get_coverage(sut_path)
-        # print_coverage_info(coverage, num_lines)
-        for filename in coverage.keys():
-            if filename in best_coverage:
-                difference = coverage[filename] - best_coverage[filename]
-            else:
-                best_coverage[filename] = coverage[filename]
-                difference = coverage[filename]
-            if difference:
-                # new lines covered!
-                print("new coverage", filename, difference)
-                coverage_interesting = True
-                best_coverage[filename] = best_coverage[filename].union(difference)
+        (new_coverage, best_coverage) = compare_coverage(best_coverage, coverage)
+        if new_coverage:
+            idx += 1
+            SAVE_FILE = f"input_logs/input_{idx}.cnf"
+            # save input
+            with open(SAVE_FILE, "w") as save_file:
+                with open(INPUT_FILE, "r") as f:
+                    save_file.write(f.read())
+                    print(f"saved {f.read()[:10]} to {SAVE_FILE}")
+            for i in range(MAX_MUTATIONS):
+                to_mutate.append(SAVE_FILE)
 
-        # need to change what is interesting
-        if interesting and len(mutation) <= MAX_MUTATIONS:
+        if errors:
+            # save error
             with open("error.log", "r") as f:
                 if len(f.read().strip()) == 0:
                     print("Error handled by SUT")
                     continue
-            # save input
 
-            with open(f"input_logs/input_{idx}.cnf", "w") as save_file:
-                with open(INPUT_FILE, "r") as f:
-                    save_file.write(f.read())
+            if not new_coverage:
+                idx += 1
+                # save input
+                SAVE_FILE = f"input_logs/input_{idx}.cnf"
+                # save input
+                with open(SAVE_FILE, "w") as save_file:
+                    with open(INPUT_FILE, "r") as f:
+                        print(f"saving {f.read()[:10]} to {SAVE_FILE}")
+                        save_file.write(f.read())
 
-            # add mutated input to queue
-            mutation.append(f"input_logs/input_{idx}.cnf")
-            if coverage_interesting:
-                generation.append(f"input_logs/input_{idx}.cnf")
-
-            # save output
+            # add to saved errors
             with open("error.log", "r") as f:
                 error = f.read()
                 # print(error)
@@ -147,8 +135,7 @@ if __name__ == "__main__":
                 #     with open(f"error_logs/error_{idx}.cng", "w") as save_file:
                 #         save_file.write(error)
 
-        idx += 1
-        if time.time() - start_time > 100:
+        if time.time() - start_time > 140:
             break
 
         print()
