@@ -20,6 +20,8 @@ if __name__ == "__main__":
     input_path = args.INPUT_PATH
     seed = args.SEED
 
+    random.seed(seed)
+
     Path('./error_logs').mkdir(parents=True, exist_ok=True)
     # keep 20 in here
     Path('./fuzzed-tests').mkdir(parents=True, exist_ok=True)
@@ -61,7 +63,6 @@ if __name__ == "__main__":
 
         # Generate an input
         generate(INPUT_FILE, seed + idx)
-        random.seed(seed + idx)
         if random.random() < 0.2:
             mutate(INPUT_FILE, seed + idx)
 
