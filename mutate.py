@@ -127,16 +127,16 @@ def is_number(n):
         return False
     
 def flip_random_number(input_content, rng = random.Random()):
-    numbers = input_content.split(' ')
-    number = 0
-    index = rng.randint(0, len(numbers) - 1)
-    while not is_number(number) or number == 0:
-        index = rng.randint(0, len(numbers) - 1)
-        number = numbers[index]
-    if "-" in number:
-        return ' '.join(numbers[:index]) + number[1:] + ' '.join(numbers[index+1:])
-    else:
-        return ' '.join(numbers[:index])  + "-" + number + ' '.join(numbers[index+1:])
+    tokens = input_content.split(' ')
+    for i in range(100):
+        index = rng.randint(0, len(tokens) - 1)
+        if not is_number(tokens[index]) and not is_number(tokens[index].removeprefix('-')):
+            continue
+        number = int(tokens[index].removeprefix('-'))
+        number = -number if number < 0 else number
+        tokens[index] = str(number)
+        break
+    return ' '.join(tokens)
 
 # def add_long_clause(input_content, rng = random.Random()):
 #     line = ""
