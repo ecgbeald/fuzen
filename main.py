@@ -31,12 +31,12 @@ def main(sut_path, input_path, seed, COVERAGE_LOCK, SAVED_ERRORS_LOCK):
 
     INPUT_FILE = f"input_{thread_id}.cnf"
 
-    # idea: keep files with more coverage in here so we can run mutation strategies based on generation list rather than the base filename list
-    generation = []
-    mutation = []
-    # consider add a chance for mutation to be back in the filenames if it is really interesting
-    MAX_MUTATIONS = 10
-    MAX_ITERATIONS = 5
+    # idea: keep filenames here, maintain a new queue for to_mutate
+    filenames = [str(input_path) + f"/{f}" for f in os.listdir(input_path)]
+    # interesting files we want to mutate
+    to_mutate = []
+    # consider add a chance for to_mutate to be back in the filenames if it is reallyerrors
+    MAX_MUTATIONS = 5
 
     iteration = 0
     gen = 0
@@ -44,19 +44,23 @@ def main(sut_path, input_path, seed, COVERAGE_LOCK, SAVED_ERRORS_LOCK):
     idx = 0
 
     start_time = time.time()
-    mutations_left = 0
     while True:
-        
         input_id = f"{thread_id}_{idx}"
+        
+        print(idx)
+        print("To mutate:", to_mutate)
 
-        # Generate an input
-        if mutations_left == 0:
+        # If no inputs, generate an input
+        if len(to_mutate) <= 0:
+            INPUT_FILE = f"input_logs/input_{idx}.cnf"
             generate(INPUT_FILE, rng)
-        if rng.random() < 0.2 or mutations_left > 0:
-            if mutations_left > 0:
-                print("Mutating only")
+            # maybe mutate
+            if rng.random() < 0.7:
+                mutate(INPUT_FILE, rng)
+        else:
+            INPUT_FILE = to_mutate.pop(0)
+            print("Mutating", INPUT_FILE)
             mutate(INPUT_FILE, rng)
-            mutations_left = max(0, mutations_left - 1)
 
         with open(INPUT_FILE, "r") as f:
             cnf = f.read()
@@ -79,13 +83,13 @@ def main(sut_path, input_path, seed, COVERAGE_LOCK, SAVED_ERRORS_LOCK):
                     return_code = process.wait(timeout=10)
                     if return_code != 0:
                         print("Process returned non-zero exit code.")
-                        interesting = True
+                        errors = True
                     else:
                         print("Process returned zero exit code.")
                 except subprocess.TimeoutExpired:
                     process.terminate()
                     print("Process timed out and was killed.")
-                    interesting = True
+                    errors = True
                     log_file.write("Timeout\n")
 
             coverage_interesting = False
@@ -93,27 +97,35 @@ def main(sut_path, input_path, seed, COVERAGE_LOCK, SAVED_ERRORS_LOCK):
         finally:
             COVERAGE_LOCK.release()
         
-        coverage_interesting = update_coverage(coverage, num_lines, COVERAGE_LOCK) 
+        new_coverage = update_coverage(coverage, num_lines, COVERAGE_LOCK) 
 
-        if coverage_interesting:
-            mutations_left = 2
+        if new_coverage:
+            idx += 1
+            SAVE_FILE = f"input_logs/input_{input_id}.cnf"
+            # save input
+            with open(SAVE_FILE, "w") as save_file:
+                with open(INPUT_FILE, "r") as f:
+                    save_file.write(f.read())
+                    print(f"saved {f.read()[:10]} to {SAVE_FILE}")
+            for i in range(MAX_MUTATIONS):
+                to_mutate.append(SAVE_FILE)
 
         # need to change what is interesting
-        if interesting and len(mutation) <= MAX_MUTATIONS:
+        if errors:
             with open("error.log", "r") as f:
                 if len(f.read().strip()) == 0:
                     print("Error handled by SUT")
                     continue
-            # save input
 
-            with open(f"input_logs/input_{input_id}.cnf", "w") as save_file:
-                with open(INPUT_FILE, "r") as f:
-                    save_file.write(f.read())
-
-            # add mutated input to queue
-            mutation.append(f"input_logs/input_{input_id}.cnf")
-            if coverage_interesting:
-                generation.append(f"input_logs/input_{input_id}.cnf")
+            if not new_coverage:
+                idx += 1
+                # save input
+                SAVE_FILE = f"input_logs/input_{input_id}.cnf"
+                # save input
+                with open(SAVE_FILE, "w") as save_file:
+                    with open(INPUT_FILE, "r") as f:
+                        print(f"saving {f.read()[:10]} to {SAVE_FILE}")
+                        save_file.write(f.read())
 
             # save output
             with open("error.log", "r") as f:
