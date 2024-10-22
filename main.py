@@ -118,7 +118,6 @@ def main(sut_path, input_path, seed, COVERAGE_LOCK, SAVED_ERRORS_LOCK):
             # save output
             with open("error.log", "r") as f:
                 error = f.read()
-                # print(error)
                 error_type = update_saved_errors(error, INPUT_FILE, SAVED_ERRORS_LOCK)
                 print_saved_errors(SAVED_ERRORS_LOCK)
                 print_unique_saved_errors(SAVED_ERRORS_LOCK)
@@ -128,7 +127,7 @@ def main(sut_path, input_path, seed, COVERAGE_LOCK, SAVED_ERRORS_LOCK):
                         save_file.write(error)
 
         idx += 1
-        if time.time() - start_time > 20:
+        if time.time() - start_time > 100:
             break
 
         print()

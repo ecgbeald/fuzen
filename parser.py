@@ -97,7 +97,7 @@ def categorise_error(error_message: str):
     return errors
 
 def split_errors(error):
-    return error.split('=======')
+    return error.split('==========')
 
 if __name__ == '__main__':
     with open(os.path.join('error_logs', 'error_319.cng')) as f:
