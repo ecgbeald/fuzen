@@ -156,7 +156,7 @@ if __name__ == "__main__":
 
     COVERAGE = {}
     NUM_LINES = {}
-    SAVED_ERRORS = [(0, set()) for _ in range(20)]
+    SAVED_ERRORS = [(0, set(), set()) for _ in range(20)]
 
     SAVED_ERRORS_LOCK = threading.Lock()
     COVERAGE_LOCK = threading.Lock()
