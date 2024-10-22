@@ -1,4 +1,5 @@
 import random
+from string import punctuation, digits, ascii_lowercase
 
 def get_random_variable(input_content, rng = random.Random()):
     numbers = input_content.split(' ')
