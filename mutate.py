@@ -22,7 +22,7 @@ def change_clause_num(header, num_to_add):
 def delete_random_character(input_content, rng = random.Random()):
     if len(input_content) == 1:
         return input_content
-    index = rng.randint(0, len(input_content)-1)
+    index = rng.randint(0, max(1, len(input_content)-1))
     return input_content[:index] + input_content[index+1:]
 
 def add_random_number(input_content, rng = random.Random()):

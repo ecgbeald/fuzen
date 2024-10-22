@@ -46,6 +46,7 @@ def main(sut_path, input_path, seed, COVERAGE_LOCK, SAVED_ERRORS_LOCK):
     start_time = time.time()
     while True:
         input_id = f"{thread_id}_{idx}"
+        errors = False
         
         print(idx)
         print("To mutate:", to_mutate)
@@ -139,7 +140,7 @@ def main(sut_path, input_path, seed, COVERAGE_LOCK, SAVED_ERRORS_LOCK):
                         save_file.write(error)
 
         idx += 1
-        if time.time() - start_time > 100:
+        if time.time() - start_time > 10:
             break
 
         print()
