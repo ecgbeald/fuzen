@@ -156,7 +156,7 @@ def mutate(input_file, rng = random.Random()):
         output = rng.choices(
                         [
                             flip_random_number, add_trivial_clause, add_infeasible_clause, randomize_lines,
-                            delete_random_line, duplicate_line, change_clauses
+                            delete_random_line, duplicate_line, change_clauses, delete_random_character
                             # delete_random_number, duplicate_line, delete_random_character, randomize_lines, 
                             # add_trivial_clause, add_infeasible_clause, duplicate_many_lines, 
                             # add_long_clause
