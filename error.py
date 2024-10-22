@@ -2,13 +2,12 @@ import shutil, threading
 from parser import *
 
 SAVED_ERRORS = [(0, set()) for _ in range(20)]
-SAVED_ERRORS_LOCK = threading.Lock()
 
 def unseen_errors(error_input):
     return [error for error in split_errors(error_input) if categorise_error(error) == set() and error.strip() != ""]
 
-def update_saved_errors(error_input: str, tmp_input_file_location: str):
-    global SAVED_ERRORS, SAVED_ERRORS_LOCK
+def update_saved_errors(error_input: str, tmp_input_file_location: str, lock):
+    global SAVED_ERRORS
     current_type = categorise_error(error_input)
     if len(current_type) == 0:
         return set()
@@ -28,7 +27,7 @@ def update_saved_errors(error_input: str, tmp_input_file_location: str):
     new_type = True
 
     try:
-        SAVED_ERRORS_LOCK.acquire()
+        lock.acquire()
         for i, (priority, stored_type) in enumerate(SAVED_ERRORS):
             if priority < min_priority:
                 min_priority = priority
@@ -42,22 +41,22 @@ def update_saved_errors(error_input: str, tmp_input_file_location: str):
             SAVED_ERRORS[lowest_priority_idx] = (current_priority, current_type)
             shutil.copy(tmp_input_file_location, f"fuzzed-tests/input_{lowest_priority_idx}.cnf")
     finally:
-        SAVED_ERRORS_LOCK.release()
+        lock.release()
 
     return current_type
 
-def print_saved_errors():
-    global SAVED_ERRORS, SAVED_ERRORS_LOCK
+def print_saved_errors(lock):
+    global SAVED_ERRORS
     try:
-        SAVED_ERRORS_LOCK.acquire()
+        lock.acquire()
         print("Saved errors: " + ", ".join([f"{p}: {s}" for p, s in SAVED_ERRORS]) + "\n")
     finally:
-        SAVED_ERRORS_LOCK.release()
+        lock.release()
 
-def print_unique_saved_errors():
-    global SAVED_ERRORS, SAVED_ERRORS_LOCK
+def print_unique_saved_errors(lock):
+    global SAVED_ERRORS
     try:
-        SAVED_ERRORS_LOCK.acquire()
+        lock.acquire()
         print("Distinct errors found:\n>" + "\n> ".join(list(set([f"{s}" for p, ss in SAVED_ERRORS for s in ss]))) + "\n")
     finally:
-        SAVED_ERRORS_LOCK.release()
+        lock.release()

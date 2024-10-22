@@ -12,24 +12,25 @@ def arg_parse():
     parser.add_argument("SEED", type=int)
     return parser.parse_args()
 
-if __name__ == "__main__":
-    args = arg_parse()
-    # in PosixPath, strips last slash
-    sut_path = args.SUT_PATH
-    input_path = args.INPUT_PATH
-    seed = args.SEED
+def delete_files(inputs = False, error_logs = False, input_logs = False):
+    if inputs:
+        for f in os.listdir():
+            if f.startswith("input_") and f.endswith(".cnf"):
+                os.remove(f)
+    if error_logs:
+        shutil.rmtree("error_logs")
+    if input_logs:
+        shutil.rmtree("input_logs")
+
+
+def main(sut_path, input_path, seed, COVERAGE_LOCK, SAVED_ERRORS_LOCK):
 
     rng = random.Random(seed)
 
-    Path('./error_logs').mkdir(parents=True, exist_ok=True)
-    # keep 20 in here
-    Path('./fuzzed-tests').mkdir(parents=True, exist_ok=True)
-    Path('./input_logs').mkdir(parents=True, exist_ok=True)
+    thread_id = threading.get_ident()
 
-    INPUT_FILE = "input.cnf"
+    INPUT_FILE = f"input_{thread_id}.cnf"
 
-    # idea: keep filenames here, maintain a new queue for mutation
-    filenames = [str(input_path) + f"/{f}" for f in os.listdir(input_path)]
     # idea: keep files with more coverage in here so we can run mutation strategies based on generation list rather than the base filename list
     generation = []
     mutation = []
@@ -45,19 +46,8 @@ if __name__ == "__main__":
     start_time = time.time()
     mutations_left = 0
     while True:
-
-        print("Generation:", generation)
-
-        if iteration >= MAX_ITERATIONS and len(generation) >= 3:
-            gen += 1
-            print("[#] Starting new Generation", gen)
-            mutation = []
-            filenames = generation
-
-        if len(mutation) >= MAX_MUTATIONS:
-            iteration += 1
-            print("[#] Starting iteration", iteration)
-            mutation = []
+        
+        input_id = f"{thread_id}_{idx}"
 
         # Generate an input
         if mutations_left == 0:
@@ -77,28 +67,33 @@ if __name__ == "__main__":
 
         interesting = False
 
-        with open("error.log", "w") as log_file:
-            process = subprocess.Popen([
-                f"{sut_path}/runsat.sh", INPUT_FILE], 
-                stdout=subprocess.DEVNULL,
-                stderr=log_file
-            )
-            try:
-                return_code = process.wait(timeout=10)
-                if return_code != 0:
-                    print("Process returned non-zero exit code.")
+        try:
+            COVERAGE_LOCK.acquire()
+            with open("error.log", "w") as log_file:
+                process = subprocess.Popen([
+                    f"{sut_path}/runsat.sh", INPUT_FILE], 
+                    stdout=subprocess.DEVNULL,
+                    stderr=log_file
+                )
+                try:
+                    return_code = process.wait(timeout=10)
+                    if return_code != 0:
+                        print("Process returned non-zero exit code.")
+                        interesting = True
+                    else:
+                        print("Process returned zero exit code.")
+                except subprocess.TimeoutExpired:
+                    process.terminate()
+                    print("Process timed out and was killed.")
                     interesting = True
-                else:
-                    print("Process returned zero exit code.")
-            except subprocess.TimeoutExpired:
-                process.terminate()
-                print("Process timed out and was killed.")
-                interesting = True
-                log_file.write("Timeout\n")
+                    log_file.write("Timeout\n")
 
-        coverage_interesting = False
-        coverage, num_lines = get_coverage(sut_path)
-        coverage_interesting = update_coverage(coverage, num_lines) 
+            coverage_interesting = False
+            coverage, num_lines = get_coverage(sut_path)
+        finally:
+            COVERAGE_LOCK.release()
+        
+        coverage_interesting = update_coverage(coverage, num_lines, COVERAGE_LOCK) 
 
         if coverage_interesting:
             mutations_left = 2
@@ -111,35 +106,26 @@ if __name__ == "__main__":
                     continue
             # save input
 
-            with open(f"input_logs/input_{idx}.cnf", "w") as save_file:
+            with open(f"input_logs/input_{input_id}.cnf", "w") as save_file:
                 with open(INPUT_FILE, "r") as f:
                     save_file.write(f.read())
 
             # add mutated input to queue
-            mutation.append(f"input_logs/input_{idx}.cnf")
+            mutation.append(f"input_logs/input_{input_id}.cnf")
             if coverage_interesting:
-                generation.append(f"input_logs/input_{idx}.cnf")
+                generation.append(f"input_logs/input_{input_id}.cnf")
 
             # save output
             with open("error.log", "r") as f:
                 error = f.read()
                 # print(error)
-                error_type = update_saved_errors(error, INPUT_FILE)
-                print_saved_errors()
-                print_unique_saved_errors()
+                error_type = update_saved_errors(error, INPUT_FILE, SAVED_ERRORS_LOCK)
+                print_saved_errors(SAVED_ERRORS_LOCK)
+                print_unique_saved_errors(SAVED_ERRORS_LOCK)
                 print("Unseen: " + "\n".join(unseen_errors(error)))
                 if len(error_type) > 0:
-                    with open(f"error_logs/error_{idx}.cng", "w") as save_file:
+                    with open(f"error_logs/error_{input_id}.cng", "w") as save_file:
                         save_file.write(error)
-
-                # print(f"Found error: {error_type}")
-                # line1 = error.split('\n')[0] if len(error.split('\n')) > 0 else ""
-                # line2 = error.split('\n')[1] if len(error.split('\n')) > 1 else ""
-                # line3 = error.split('\n')[2] if len(error.split('\n')) > 2 else ""
-                # if not ("SEGV" in line3 or "BUS" in line3 or "heap-buffer-overflow" in line2 or "Cannot apply remove_w_clause" in line1 or "Timeout" in line1):
-                #     update_saved_errors(error_type, INPUT_FILE)
-                #     with open(f"error_logs/error_{idx}.cng", "w") as save_file:
-                #         save_file.write(error)
 
         idx += 1
         if time.time() - start_time > 20:
@@ -147,4 +133,45 @@ if __name__ == "__main__":
 
         print()
 
-    print_total_coverage_info()
+    print_total_coverage_info(COVERAGE_LOCK)
+
+if __name__ == "__main__":
+    args = arg_parse()
+
+    sut_path = args.SUT_PATH
+    input_path = args.INPUT_PATH
+    seed = args.SEED
+
+    delete_files(
+        inputs = True, 
+        error_logs = True, 
+        input_logs = True
+    )
+
+    Path('./error_logs').mkdir(parents=True, exist_ok=True)
+    # keep 20 in here
+    Path('./fuzzed-tests').mkdir(parents=True, exist_ok=True)
+    Path('./input_logs').mkdir(parents=True, exist_ok=True)
+
+    num_threads = 4
+
+    SAVED_ERRORS_LOCK = threading.Lock()
+    COVERAGE_LOCK = threading.Lock()
+
+    threads: list[threading.Thread] = []
+    for t_seed in range(seed, seed + num_threads):
+        thread = threading.Thread(
+            target=main, 
+            args=(
+                sut_path, 
+                input_path, 
+                t_seed, 
+                SAVED_ERRORS_LOCK, 
+                COVERAGE_LOCK
+            )
+        )
+        threads.append(thread)
+        thread.start()
+    
+    for thread in threads:
+        thread.join()
