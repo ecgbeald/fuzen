@@ -76,7 +76,7 @@ if __name__ == "__main__":
             process = subprocess.Popen([f"{sut_path}/runsat.sh", INPUT_FILE], stdout=subprocess.DEVNULL,
                                        stderr=log_file)
             try:
-                return_code = process.wait(timeout=5)
+                return_code = process.wait(timeout=10)
                 if return_code != 0:
                     print("Process returned non-zero exit code.")
                     interesting = True
@@ -139,7 +139,7 @@ if __name__ == "__main__":
                 #         save_file.write(error)
 
         idx += 1
-        if time.time() - start_time > 200:
+        if time.time() - start_time > 100:
             break
 
         print()
