@@ -31,18 +31,18 @@ def add_random_character(input_content, rng = random.Random()):
         return input_content
     index = rng.randint(0, len(input_content)-1)
     index = rng.randint(0, len(input_content)-1)
-    return input_content[:index] + random.choice(punctuation + digits + ascii_lowercase) +input_content[index+1:]
+    return input_content[:index] + rng.choice(punctuation + digits + ascii_lowercase) +input_content[index+1:]
 
 def add_random_number(input_content, rng = random.Random()):
     index = rng.randint(0, len(input_content) - 1)
-    return input_content[:index] + str(rng.randint(100000, 1000000) * rng.choice([-1, 1])) + input_content[index:]
+    return input_content[:index] + str(rng.randint(-1000000, 1000000)) + input_content[index:]
 
 def duplicate_line(input_content, rng = random.Random()):
     lines = input_content.split('\n')
     line = lines[rng.randint(0, len(lines)-1)]
     lines.insert(rng.randint(0, len(lines)-1), line)
     # 50% chance adjust number of clauses to allow for clause removal
-    if random.random() < 0.5:
+    if rng.random() < 0.5:
         lines[0] = change_clause_num(lines[0], 1)
 
     return '\n'.join(lines)
@@ -60,7 +60,7 @@ def delete_random_line(input_content, rng = random.Random()):
     index = rng.randint(0, len(input_content) - 1)
 
     # 50% chance adjust number of clauses to allow for clause removal
-    if random.random() < 0.5:
+    if rng.random() < 0.5:
         lines[0] = change_clause_num(lines[0], -1)
 
     lines = lines[:index] + lines[index + 1:]
@@ -78,7 +78,7 @@ def add_trivial_clause(input_content, rng = random.Random()):
     lines.insert(rng.randint(0, len(lines)-1), f"{variable} {variable} 0")
 
     # 50% chance adjust number of clauses to allow for extra clause
-    if random.random() < 0.5:
+    if rng.random() < 0.5:
         lines[0] = change_clause_num(lines[0], 1)
 
     return '\n'.join(lines)
@@ -90,7 +90,7 @@ def add_infeasible_clause(input_content, rng = random.Random()):
     lines.insert(rng.randint(0, len(lines)-1), f"-{variable} 0")
 
     # 50% chance adjust number of clauses to allow for extra clauses
-    if random.random() < 0.5:
+    if rng.random() < 0.5:
         lines[0] = change_clause_num(lines[0], 2)
 
     return '\n'.join(lines)
@@ -136,26 +136,20 @@ def mutate(input_file, rng = random.Random(), iterations = 10):
     iterations = rng.randint(1, iterations)
     output = input_content
     for i in range(iterations):
-        output = rng.choices(
-                        [
-                            flip_random_number, 
-                            add_trivial_clause, 
-                            add_infeasible_clause, 
-                            randomize_lines,
-                            delete_random_line, 
-                            duplicate_line, 
-                            change_clauses, 
-                            delete_random_character, 
-                            add_random_character
-                        ], 
-                        # weights = 
-                        # [
-                        #     0.05, 0.1, 0.05, 0.1,
-                        #     0.05, 0.2, 0.15,
-                        #     0.2
-                        # ],
-                        k = 1
-                        )[0](output, rng)
+        func = rng.choice(
+            [
+                flip_random_number, 
+                add_trivial_clause, 
+                add_infeasible_clause, 
+                randomize_lines,
+                delete_random_line, 
+                duplicate_line, 
+                change_clauses, 
+                delete_random_character, 
+                add_random_character
+            ]
+        )
+        output = func(output, rng)
         if len(output) == 0:
             output = input_content
 

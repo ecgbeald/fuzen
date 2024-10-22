@@ -1,4 +1,4 @@
-import os, subprocess, time, argparse
+import os, subprocess, time, argparse, threading
 from pathlib import Path
 from mutate import *
 from generate import *
@@ -23,7 +23,7 @@ def delete_files(inputs = False, error_logs = False, input_logs = False):
         shutil.rmtree("input_logs")
 
 
-def main(sut_path, input_path, seed, mutation_iterations, COVERAGE_LOCK, SAVED_ERRORS_LOCK):
+def main(sut_path, input_path, seed, mutation_iterations, SAVED_ERRORS, SAVED_ERRORS_LOCK, COVERAGE, N_LINES: dict, COVERAGE_LOCK):
 
     rng = random.Random(seed)
 
@@ -47,13 +47,12 @@ def main(sut_path, input_path, seed, mutation_iterations, COVERAGE_LOCK, SAVED_E
 
         # If no inputs, generate an input
         if len(to_mutate) <= 0:
-            INPUT_FILE = f"input_logs/input_{idx}.cnf"
             generate(INPUT_FILE, rng)
             # maybe mutate
             if rng.random() < 0.7:
-                mutate(INPUT_FILE, rng)
+                mutate(INPUT_FILE, rng, mutation_iterations)
         else:
-            INPUT_FILE = to_mutate.pop(0)
+            shutil.copy(to_mutate.pop(0), INPUT_FILE)
             print("Mutating", INPUT_FILE)
             mutate(INPUT_FILE, rng, mutation_iterations)
 
@@ -63,8 +62,6 @@ def main(sut_path, input_path, seed, mutation_iterations, COVERAGE_LOCK, SAVED_E
                 continue
             else:
                 print(f"Input Hash: {get_hash(cnf)}")
-
-        interesting = False
 
         try:
             COVERAGE_LOCK.acquire()
@@ -87,12 +84,12 @@ def main(sut_path, input_path, seed, mutation_iterations, COVERAGE_LOCK, SAVED_E
                     errors = True
                     log_file.write("Timeout\n")
 
-            coverage_interesting = False
             coverage, num_lines = get_coverage(sut_path)
+            N_LINES.update(num_lines)
         finally:
             COVERAGE_LOCK.release()
         
-        new_coverage = update_coverage(coverage, num_lines, COVERAGE_LOCK) 
+        new_coverage = update_coverage(coverage, COVERAGE, COVERAGE_LOCK) 
 
         if new_coverage:
             idx += 1
@@ -102,7 +99,7 @@ def main(sut_path, input_path, seed, mutation_iterations, COVERAGE_LOCK, SAVED_E
                 with open(INPUT_FILE, "r") as f:
                     save_file.write(f.read())
                     print(f"saved {f.read()[:10]} to {SAVE_FILE}")
-            for i in range(MAX_MUTATIONS):
+            for _ in range(MAX_MUTATIONS):
                 to_mutate.append(SAVE_FILE)
 
         # need to change what is interesting
@@ -125,21 +122,19 @@ def main(sut_path, input_path, seed, mutation_iterations, COVERAGE_LOCK, SAVED_E
             # save output
             with open("error.log", "r") as f:
                 error = f.read()
-                error_type = update_saved_errors(error, INPUT_FILE, SAVED_ERRORS_LOCK)
-                print_saved_errors(SAVED_ERRORS_LOCK)
-                print_unique_saved_errors(SAVED_ERRORS_LOCK)
+                error_type = update_saved_errors(error, INPUT_FILE, SAVED_ERRORS, SAVED_ERRORS_LOCK)
+                print_saved_errors(SAVED_ERRORS, SAVED_ERRORS_LOCK)
+                print_unique_saved_errors(SAVED_ERRORS, SAVED_ERRORS_LOCK)
                 print("Unseen: " + "\n".join(unseen_errors(error)))
                 if len(error_type) > 0:
                     with open(f"error_logs/error_{input_id}.cng", "w") as save_file:
                         save_file.write(error)
 
         idx += 1
-        if time.time() - start_time > 10:
+        if time.time() - start_time > 100:
             break
 
         print()
-
-    print_total_coverage_info(COVERAGE_LOCK)
 
 if __name__ == "__main__":
     args = arg_parse()
@@ -159,7 +154,11 @@ if __name__ == "__main__":
     Path('./fuzzed-tests').mkdir(parents=True, exist_ok=True)
     Path('./input_logs').mkdir(parents=True, exist_ok=True)
 
-    num_threads = 4
+    num_threads = 1
+
+    COVERAGE = {}
+    NUM_LINES = {}
+    SAVED_ERRORS = [(0, set()) for _ in range(20)]
 
     SAVED_ERRORS_LOCK = threading.Lock()
     COVERAGE_LOCK = threading.Lock()
@@ -175,8 +174,11 @@ if __name__ == "__main__":
                 input_path, 
                 t_seed,
                 mutation_iterations,
+                SAVED_ERRORS,
                 SAVED_ERRORS_LOCK, 
-                COVERAGE_LOCK
+                COVERAGE,
+                NUM_LINES,
+                COVERAGE_LOCK,
             )
         )
         threads.append(thread)
@@ -184,3 +186,6 @@ if __name__ == "__main__":
     
     for thread in threads:
         thread.join()
+
+    print_total_coverage_info(COVERAGE, NUM_LINES, COVERAGE_LOCK)
+    print_saved_errors(SAVED_ERRORS, SAVED_ERRORS_LOCK)

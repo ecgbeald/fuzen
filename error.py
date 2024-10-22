@@ -1,13 +1,10 @@
-import shutil, threading
+import shutil
 from parser import *
-
-SAVED_ERRORS = [(0, set()) for _ in range(20)]
 
 def unseen_errors(error_input):
     return [error for error in split_errors(error_input) if categorise_error(error) == set() and error.strip() != ""]
 
-def update_saved_errors(error_input: str, tmp_input_file_location: str, lock):
-    global SAVED_ERRORS
+def update_saved_errors(error_input: str, tmp_input_file_location: str, SAVED_ERRORS, lock):
     current_type = categorise_error(error_input)
     if len(current_type) == 0:
         return set()
@@ -45,18 +42,16 @@ def update_saved_errors(error_input: str, tmp_input_file_location: str, lock):
 
     return current_type
 
-def print_saved_errors(lock):
-    global SAVED_ERRORS
+def print_saved_errors(SAVED_ERRORS, lock):
     try:
         lock.acquire()
         print("Saved errors: " + ", ".join([f"{p}: {s}" for p, s in SAVED_ERRORS]) + "\n")
     finally:
         lock.release()
 
-def print_unique_saved_errors(lock):
-    global SAVED_ERRORS
+def print_unique_saved_errors(SAVED_ERRORS, lock):
     try:
         lock.acquire()
-        print("Distinct errors found:\n>" + "\n> ".join(list(set([f"{s}" for p, ss in SAVED_ERRORS for s in ss]))) + "\n")
+        print("Distinct errors found:\n> " + "\n> ".join(list(set([f"{s}" for p, ss in SAVED_ERRORS for s in ss]))) + "\n")
     finally:
         lock.release()

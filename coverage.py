@@ -1,7 +1,4 @@
-import subprocess, threading, os
-
-COVERAGE = {}
-NUM_LINES = {}
+import subprocess, os
 
 def process_coverage_file(filename):
     executed_lines = set()
@@ -74,11 +71,9 @@ def print_coverage_info(executed, totals):
     print(f"Total coverage: {percent:.1f}%\n")
 
 # Returns True if new coverage was added
-def update_coverage(coverage, num_lines, lock):
-    global COVERAGE, NUM_LINES
+def update_coverage(coverage, COVERAGE, lock):
     try:
         lock.acquire()
-        NUM_LINES = num_lines
         for filename in coverage.keys():
             if filename in COVERAGE:
                 difference = coverage[filename] - COVERAGE[filename]
@@ -93,8 +88,7 @@ def update_coverage(coverage, num_lines, lock):
     finally:
         lock.release()
 
-def print_total_coverage_info(lock):
-    global COVERAGE, NUM_LINES
+def print_total_coverage_info(COVERAGE, NUM_LINES, lock):
     try:
         lock.acquire()
         print_coverage_info(COVERAGE, NUM_LINES)
