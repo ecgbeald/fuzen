@@ -12,7 +12,6 @@ def arg_parse():
     parser.add_argument("SEED", type=int)
     return parser.parse_args()
 
-
 if __name__ == "__main__":
     args = arg_parse()
     # in PosixPath, strips last slash
@@ -26,7 +25,6 @@ if __name__ == "__main__":
     # keep 20 in here
     Path('./fuzzed-tests').mkdir(parents=True, exist_ok=True)
     Path('./input_logs').mkdir(parents=True, exist_ok=True)
-    init_saved_errors()
 
     INPUT_FILE = "input.cnf"
 
@@ -43,9 +41,9 @@ if __name__ == "__main__":
     gen = 0
     # idx is the test no
     idx = 0
-    best_coverage = {}
 
     start_time = time.time()
+    mutations_left = 0
     while True:
 
         print("Generation:", generation)
@@ -62,9 +60,13 @@ if __name__ == "__main__":
             mutation = []
 
         # Generate an input
-        generate(INPUT_FILE, rng)
-        if rng.random() < 0.2:
+        if mutations_left == 0:
+            generate(INPUT_FILE, rng)
+        if rng.random() < 0.2 or mutations_left > 0:
+            if mutations_left > 0:
+                print("Mutating only")
             mutate(INPUT_FILE, rng)
+            mutations_left = max(0, mutations_left - 1)
 
         with open(INPUT_FILE, "r") as f:
             cnf = f.read()
@@ -96,18 +98,10 @@ if __name__ == "__main__":
 
         coverage_interesting = False
         coverage, num_lines = get_coverage(sut_path)
-        # print_coverage_info(coverage, num_lines)
-        for filename in coverage.keys():
-            if filename in best_coverage:
-                difference = coverage[filename] - best_coverage[filename]
-            else:
-                best_coverage[filename] = coverage[filename]
-                difference = coverage[filename]
-            if difference:
-                # new lines covered!
-                print("new coverage", filename, difference)
-                coverage_interesting = True
-                best_coverage[filename] = best_coverage[filename].union(difference)
+        coverage_interesting = update_coverage(coverage, num_lines) 
+
+        if coverage_interesting:
+            mutations_left = 2
 
         # need to change what is interesting
         if interesting and len(mutation) <= MAX_MUTATIONS:
@@ -131,9 +125,9 @@ if __name__ == "__main__":
                 error = f.read()
                 # print(error)
                 error_type = update_saved_errors(error, INPUT_FILE)
-                print(saved_errors)
-                print("\n".join(unseen_errors(error)))
-                print("===\nDistinct errors found:\n" + "\n".join(list(set([str(item) for p, sublist in saved_errors for item in sublist]))))
+                print_saved_errors()
+                print_unique_saved_errors()
+                print("Unseen: " + "\n".join(unseen_errors(error)))
                 if len(error_type) > 0:
                     with open(f"error_logs/error_{idx}.cng", "w") as save_file:
                         save_file.write(error)
@@ -148,9 +142,9 @@ if __name__ == "__main__":
                 #         save_file.write(error)
 
         idx += 1
-        if time.time() - start_time > 100:
+        if time.time() - start_time > 20:
             break
 
         print()
 
-    print_coverage_info(best_coverage, num_lines)
+    print_total_coverage_info()
