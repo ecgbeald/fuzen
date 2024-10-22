@@ -35,6 +35,9 @@ def get_coverage(solver_path):
         lines, total = process_coverage_file(solver_file + ".c.gcov")
         executed[solver_file] = lines
         totals[solver_file] = total
+        # delete data before next run
+        if os.path.exists(solver_file + ".gcda"):
+            os.remove(solver_file + ".gcda")
     # go back to original directory
     os.chdir(original_directory)
     return (executed, totals)
