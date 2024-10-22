@@ -1,8 +1,8 @@
 import os, subprocess, time, shutil, argparse
 from pathlib import Path
-from generate import mutate, MANUAL_INPUT
-from parser_1 import parse_error, ErrorType, is_error_different
-from coverage import get_coverage, print_coverage_info
+from generate import *
+from parser_1 import *
+from coverage import *
 
 saved_errors = []
 
@@ -108,17 +108,20 @@ if __name__ == "__main__":
             mutation = []
 
         # run manual inputs first
-        if iteration == 0 and idx < len(MANUAL_INPUT):
-            with open(INPUT_FILE, "w") as f:
-                f.write(MANUAL_INPUT[idx])
-            print(f"Index {idx}: manual input")
-        else:
-            f_name = filenames[idx % len(filenames)]
-            shutil.copy(f_name, INPUT_FILE)
-            print(f"Processing {f_name}")
-            # if not "inputs/" in f_name:
-            # mutate(input_file)
-            mutate(INPUT_FILE, seed)
+        # if iteration == 0 and idx < len(MANUAL_INPUT):
+        #     with open(INPUT_FILE, "w") as f:
+        #         f.write(MANUAL_INPUT[idx])
+        #     print(f"Index {idx}: manual input")
+        # else:
+        #     f_name = filenames[idx % len(filenames)]
+        #     shutil.copy(f_name, INPUT_FILE)
+        #     print(f"Processing {f_name}")
+        #     # if not "inputs/" in f_name:
+        #     # mutate(input_file)
+        #     mutate(INPUT_FILE, seed)
+
+        # Generate an input
+        generate(INPUT_FILE, seed + idx)
 
         with open(INPUT_FILE, "r") as f:
             if len(f.read()) == 0:
@@ -178,7 +181,9 @@ if __name__ == "__main__":
                 different = is_error_different(error)
                 print(f"Found error: {error_type}")
                 print(f'Is diffrent: {different}')
-                if different:
+                line2 = error.split('\n')[1]
+                line3 = error.split('\n')[2]
+                if not ("SEGV" in line3 or "BUS" in line3 or "heap-buffer-overflow" in line2):
                     update_saved_errors(error_type, INPUT_FILE)
                     with open(f"error_logs/error_{idx}.cng", "w") as save_file:
                         save_file.write(error)
