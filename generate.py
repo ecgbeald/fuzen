@@ -1,6 +1,4 @@
-import random
-import string
-import sys
+import random, string, sys, hashlib
 
 MANUAL_INPUT = [ "p cnf 10 10\n",
                  "p cnf " + string.printable,
@@ -137,6 +135,10 @@ def generate(output_file, seed = None):
     ]
     header = "p cnf " + str(len(literals)) + " " + str(len(clauses)) + "\n"
     cnf = header + "\n".join(clauses)
+
+    # hash the cnf
+    hash = hashlib.md5(cnf.encode("utf-8")).hexdigest()
+    print(f"Input Hash: {hash}")
 
     with open(output_file, "w") as f:
         f.write(cnf)
