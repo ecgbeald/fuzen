@@ -47,8 +47,7 @@ def main(sut_path, input_path, seed, COVERAGE_LOCK, SAVED_ERRORS_LOCK):
     while True:
         input_id = f"{thread_id}_{idx}"
         errors = False
-        
-        print(idx)
+    
         print("To mutate:", to_mutate)
 
         # If no inputs, generate an input
@@ -62,15 +61,6 @@ def main(sut_path, input_path, seed, COVERAGE_LOCK, SAVED_ERRORS_LOCK):
             INPUT_FILE = to_mutate.pop(0)
             print("Mutating", INPUT_FILE)
             mutate(INPUT_FILE, rng)
-
-        with open(INPUT_FILE, "r") as f:
-            cnf = f.read()
-            if len(cnf) == 0:
-                continue
-            else:
-                print(f"Input Hash: {get_hash(cnf)}")
-
-        interesting = False
 
         try:
             COVERAGE_LOCK.acquire()
@@ -107,7 +97,6 @@ def main(sut_path, input_path, seed, COVERAGE_LOCK, SAVED_ERRORS_LOCK):
             with open(SAVE_FILE, "w") as save_file:
                 with open(INPUT_FILE, "r") as f:
                     save_file.write(f.read())
-                    print(f"saved {f.read()[:10]} to {SAVE_FILE}")
             for i in range(MAX_MUTATIONS):
                 to_mutate.append(SAVE_FILE)
 
@@ -125,7 +114,6 @@ def main(sut_path, input_path, seed, COVERAGE_LOCK, SAVED_ERRORS_LOCK):
                 # save input
                 with open(SAVE_FILE, "w") as save_file:
                     with open(INPUT_FILE, "r") as f:
-                        print(f"saving {f.read()[:10]} to {SAVE_FILE}")
                         save_file.write(f.read())
 
             # save output
@@ -140,12 +128,10 @@ def main(sut_path, input_path, seed, COVERAGE_LOCK, SAVED_ERRORS_LOCK):
                         save_file.write(error)
 
         idx += 1
-        if time.time() - start_time > 10:
+        if time.time() - start_time > 50:
             break
 
         print()
-
-    print_total_coverage_info(COVERAGE_LOCK)
 
 if __name__ == "__main__":
     args = arg_parse()
@@ -187,3 +173,5 @@ if __name__ == "__main__":
     
     for thread in threads:
         thread.join()
+
+    print_total_coverage_info(COVERAGE_LOCK)
