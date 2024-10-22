@@ -1,11 +1,14 @@
 import os, shutil
-from parser import categorise_error, ErrorType
+from parser import *
 
 saved_errors = []
 
 def init_saved_errors():
     for i in range(20):
         saved_errors.append((0, set()))
+
+def unseen_errors(error_input):
+    return [error for error in split_errors(error_input) if categorise_error(error) == set() and error.strip() != ""]
 
 def update_saved_errors(error_input:str, tmp_input_file_location: str):
     current_type = categorise_error(error_input)
