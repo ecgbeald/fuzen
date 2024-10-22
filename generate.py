@@ -84,6 +84,15 @@ def flip_random_number(input_content, seed = None):
     else:
         return input_content[:index] + "-" + number + input_content[index+1:]
 
+def add_long_clause(input_content, seed = None):
+    random.seed(seed)
+    line = ""
+    for i in range(500):
+        num = random.randint(-100000, 100000)
+        line += str(num) + ' '
+    line += '0'
+    return input_content + line
+
 def mutate(input_file, seed = None):
     with open(input_file, "r") as f:
         input_content = f.read()
@@ -93,8 +102,17 @@ def mutate(input_file, seed = None):
     output = input_content
     for i in range(iterations):
         output = random.choices(
-                        [delete_random_number, duplicate_line, delete_random_character, randomize_lines, add_trivial_clause, add_infeasible_clause, duplicate_many_lines, flip_random_number], 
-                        weights = [0.05, 0.05, 0.05, 0.1, 0.05, 0.4, 0.1, 0.2],
+                        [
+                            delete_random_number, duplicate_line, delete_random_character, randomize_lines, 
+                            add_trivial_clause, add_infeasible_clause, duplicate_many_lines, flip_random_number, 
+                            add_long_clause
+                        ], 
+                        weights = 
+                        [
+                            0.05, 0.1, 0.05, 0.1,
+                            0.05, 0.2, 0.1, 0.05,
+                            0.2
+                        ],
                         k = 1
                         )[0](output, seed)
 
