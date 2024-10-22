@@ -153,8 +153,8 @@ MAX_INT = sys.maxsize
 
 def generate(output_file, rng):
     cnf = ""
-    num_literals = rng.randint(1, 25) * 2
-    num_clauses = rng.randint(1, 25)
+    num_literals = rng.randint(1, 1000) * 2
+    num_clauses = rng.randint(1, 1000)
     literals = []
     for _ in range(rng.randint(1, num_literals // 2)):
         lit = str(rng.randint(1, 50))
@@ -163,7 +163,7 @@ def generate(output_file, rng):
 
     for _ in range(num_clauses):
         clause = ""
-        for _ in range(rng.randint(1, 10)):
+        for _ in range(rng.randint(1, 100)):
             clause += rng.choice(literals) + " "
         clause += "0\n"
         cnf += clause
@@ -171,12 +171,11 @@ def generate(output_file, rng):
     header = "p cnf " + str(num_literals) + " " + str(num_clauses) + "\n"
     cnf = header + cnf
 
-    # hash the cnf
-    hash = hashlib.md5(cnf.encode("utf-8")).hexdigest()
-    print(f"Input Hash: {hash}")
-
     with open(output_file, "w") as f:
         f.write(cnf)
+
+def get_hash(cnf: str):
+    return hashlib.md5(cnf.encode("utf-8")).hexdigest()
 
 if __name__ == "__main__":
     rng = random.Random(1234)
