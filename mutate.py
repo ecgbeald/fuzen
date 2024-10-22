@@ -19,6 +19,25 @@ def change_clause_num(header, num_to_add):
     sections[-1] = str(int(sections[-1]) + num_to_add)
     return ' '.join(sections)
 
+def get_random_variable(input_content, rng = random.Random()):
+    numbers = input_content.split(' ')
+    number = 0
+    index = rng.randint(0, len(numbers) - 1)
+    while not is_number(number) or number == 0:
+        index = rng.randint(0, len(numbers) - 1)
+        number = numbers[index]
+    if "-" in number:
+        return number[1:]
+    return number
+
+def change_clause_num(header, num_to_add):
+    sections = header.split(' ')
+    if not is_number(sections[-1]):
+        # not properly formatted, return original
+        return header
+    sections[-1] = str(int(sections[-1]) + num_to_add)
+    return ' '.join(sections)
+
 def delete_random_character(input_content, rng = random.Random()):
     if len(input_content) == 1:
         return input_content

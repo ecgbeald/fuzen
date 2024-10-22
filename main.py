@@ -76,13 +76,18 @@ if __name__ == "__main__":
         interesting = False
 
         with open("error.log", "w") as log_file:
-            process = subprocess.Popen([f"{sut_path}/runsat.sh", INPUT_FILE], stdout=subprocess.DEVNULL,
-                                       stderr=log_file)
+            process = subprocess.Popen([
+                f"{sut_path}/runsat.sh", INPUT_FILE], 
+                stdout=subprocess.DEVNULL,
+                stderr=log_file
+            )
             try:
                 return_code = process.wait(timeout=10)
                 if return_code != 0:
                     print("Process returned non-zero exit code.")
                     interesting = True
+                else:
+                    print("Process returned zero exit code.")
             except subprocess.TimeoutExpired:
                 process.terminate()
                 print("Process timed out and was killed.")
@@ -91,6 +96,7 @@ if __name__ == "__main__":
 
         coverage_interesting = False
         coverage, num_lines = get_coverage(sut_path)
+        # print_coverage_info(coverage, num_lines)
         for filename in coverage.keys():
             if filename in best_coverage:
                 difference = coverage[filename] - best_coverage[filename]
@@ -127,7 +133,7 @@ if __name__ == "__main__":
                 error_type = update_saved_errors(error, INPUT_FILE)
                 print(saved_errors)
                 print("\n".join(unseen_errors(error)))
-                print("Distinct errors found: ", set([item for p, sublist in saved_errors for item in sublist]))
+                print("===\nDistinct errors found:\n" + "\n".join(list(set([str(item) for p, sublist in saved_errors for item in sublist]))))
                 if len(error_type) > 0:
                     with open(f"error_logs/error_{idx}.cng", "w") as save_file:
                         save_file.write(error)
