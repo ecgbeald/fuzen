@@ -5,6 +5,16 @@ from generate import *
 from error import *
 from coverage import *
 
+class FakeLock():
+    def acquire(self):
+        pass
+    def release(self):
+        pass
+    def __enter__(self):
+        pass
+    def __exit__(self, exc_type, exc_value, traceback):
+        pass
+
 def arg_parse():
     parser = argparse.ArgumentParser()
     parser.add_argument("SUT_PATH", type=Path)
@@ -34,7 +44,7 @@ def main(sut_path, input_path, seed, mutation_iterations, SAVED_ERRORS, SAVED_ER
     # interesting files we want to mutate
     to_mutate = []
     # consider add a chance for to_mutate to be back in the filenames if it is reallyerrors
-    MAX_MUTATIONS = 5
+    MAX_MUTATIONS = 3
 
     idx = 0
     start_time = time.time()
@@ -63,27 +73,27 @@ def main(sut_path, input_path, seed, mutation_iterations, SAVED_ERRORS, SAVED_ER
             else:
                 print(f"Input Hash: {get_hash(cnf)}")
 
+        with open("error.log", "w") as log_file:
+            process = subprocess.Popen([
+                f"{sut_path}/runsat.sh", INPUT_FILE], 
+                stdout=subprocess.DEVNULL,
+                stderr=log_file
+            )
+            try:
+                return_code = process.wait(timeout=10)
+                if return_code != 0:
+                    print("Process returned non-zero exit code.")
+                    errors = True
+                else:
+                    print("Process returned zero exit code.")
+            except subprocess.TimeoutExpired:
+                process.terminate()
+                print("Process timed out and was killed.")
+                errors = True
+                log_file.write("Timeout\n")
+
         try:
             COVERAGE_LOCK.acquire()
-            with open("error.log", "w") as log_file:
-                process = subprocess.Popen([
-                    f"{sut_path}/runsat.sh", INPUT_FILE], 
-                    stdout=subprocess.DEVNULL,
-                    stderr=log_file
-                )
-                try:
-                    return_code = process.wait(timeout=10)
-                    if return_code != 0:
-                        print("Process returned non-zero exit code.")
-                        errors = True
-                    else:
-                        print("Process returned zero exit code.")
-                except subprocess.TimeoutExpired:
-                    process.terminate()
-                    print("Process timed out and was killed.")
-                    errors = True
-                    log_file.write("Timeout\n")
-
             coverage, num_lines = get_coverage(sut_path)
             N_LINES.update(num_lines)
         finally:
@@ -164,16 +174,30 @@ if __name__ == "__main__":
     NUM_LINES = {}
     SAVED_ERRORS = [(0, set(), set()) for _ in range(20)]
 
-    SAVED_ERRORS_LOCK = threading.Lock()
-    COVERAGE_LOCK = threading.Lock()
+    SAVED_ERRORS_LOCK = FakeLock()
+    COVERAGE_LOCK = FakeLock()
 
-    threads: list[threading.Thread] = []
+    # threads: list[threading.Thread] = []
     mutation_iterations = 1
     for t_seed in range(seed, seed + num_threads):
         mutation_iterations += 1
-        thread = threading.Thread(
-            target=main, 
-            args=(
+        # thread = threading.Thread(
+        #     target=main, 
+        #     args=(
+        #         sut_path, 
+        #         input_path, 
+        #         t_seed,
+        #         mutation_iterations,
+        #         SAVED_ERRORS,
+        #         SAVED_ERRORS_LOCK, 
+        #         COVERAGE,
+        #         NUM_LINES,
+        #         COVERAGE_LOCK,
+        #     )
+        # )
+        # threads.append(thread)
+        # thread.start()
+        main(
                 sut_path, 
                 input_path, 
                 t_seed,
@@ -184,12 +208,9 @@ if __name__ == "__main__":
                 NUM_LINES,
                 COVERAGE_LOCK,
             )
-        )
-        threads.append(thread)
-        thread.start()
     
-    for thread in threads:
-        thread.join()
+    # for thread in threads:
+    #     thread.join()
 
     print_total_coverage_info(COVERAGE, NUM_LINES, COVERAGE_LOCK)
     print_saved_errors(SAVED_ERRORS, SAVED_ERRORS_LOCK)
