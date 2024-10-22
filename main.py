@@ -156,10 +156,9 @@ if __name__ == "__main__":
     # delete data before next run
     solver_files = [f for f in os.listdir(sut_path) if f.endswith(".gcda")]
     for solver_file in solver_files:
-        print(sut_path + solver_file)
-        os.remove(sut_path + solver_file)
+        os.remove(str(sut_path) + '/' + solver_file)
 
-    num_threads = 2
+    num_threads = 1
 
     COVERAGE = {}
     NUM_LINES = {}
