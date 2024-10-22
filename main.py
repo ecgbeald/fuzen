@@ -38,6 +38,7 @@ def main(sut_path, input_path, seed, mutation_iterations, SAVED_ERRORS, SAVED_ER
 
     idx = 0
     start_time = time.time()
+
     while True:
         input_id = f"{thread_id}_{idx}"
         errors = False
@@ -129,7 +130,7 @@ def main(sut_path, input_path, seed, mutation_iterations, SAVED_ERRORS, SAVED_ER
                         save_file.write(error)
 
         idx += 1
-        if time.time() - start_time > 100:
+        if time.time() - start_time > 220:
             break
 
         print()
@@ -152,7 +153,13 @@ if __name__ == "__main__":
     Path('./fuzzed-tests').mkdir(parents=True, exist_ok=True)
     Path('./input_logs').mkdir(parents=True, exist_ok=True)
 
-    num_threads = 1
+    # delete data before next run
+    solver_files = [f for f in os.listdir(sut_path) if f.endswith(".gcda")]
+    for solver_file in solver_files:
+        print(sut_path + solver_file)
+        os.remove(sut_path + solver_file)
+
+    num_threads = 2
 
     COVERAGE = {}
     NUM_LINES = {}
