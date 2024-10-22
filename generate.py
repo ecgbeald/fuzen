@@ -63,7 +63,7 @@ def is_number(n):
         return False
     
 def flip_random_number(input_content, rng = random.Random()):
-    numbers = input_content.split('\n')
+    numbers = input_content.split(' ')
     number = 0
     while not is_number(number) or number == 0:
         index = rng.randint(0, len(numbers) - 1)
