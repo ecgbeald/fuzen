@@ -3,7 +3,6 @@ import os
 from enum import Enum, auto
 import re
 
-
 # attempted double-free
 # dynamic-stack-buffer-overflow
 # heap-buffer-overflow
@@ -97,10 +96,9 @@ def categorise_error(error_message: str):
 
     return errors
 
+def split_errors(error):
+    return error.split('=======')
 
 if __name__ == '__main__':
-    with open(os.path.join('error_logs', 'error_0.cng')) as f:
-        print(categorise_error(f.read()))
-        # with open(os.path.join('error_logs', 'error_11.cng')) as f2:
-        #     similarity = similar(f.read(), f2.read())
-        #     print(similarity)
+    with open(os.path.join('error_logs', 'error_319.cng')) as f:
+        print([e for e in [categorise_error(error) for error in split_errors(f.read())] if len(e) > 0])

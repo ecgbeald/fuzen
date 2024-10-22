@@ -1,9 +1,9 @@
-import os, subprocess, time, shutil, argparse
+import os, subprocess, time, argparse
 from pathlib import Path
+from mutate import *
 from generate import *
 from error import *
 from coverage import *
-
 
 def arg_parse():
     parser = argparse.ArgumentParser()
@@ -67,8 +67,11 @@ if __name__ == "__main__":
             mutate(INPUT_FILE, rng)
 
         with open(INPUT_FILE, "r") as f:
-            if len(f.read()) == 0:
+            cnf = f.read()
+            if len(cnf) == 0:
                 continue
+            else:
+                print(f"Input Hash: {get_hash(cnf)}")
 
         interesting = False
 
@@ -123,17 +126,17 @@ if __name__ == "__main__":
                 # print(error)
                 error_type = update_saved_errors(error, INPUT_FILE)
                 print(saved_errors)
+                print("\n".join(unseen_errors(error)))
+                print("Distinct errors found: ", set([item for p, sublist in saved_errors for item in sublist]))
                 if len(error_type) > 0:
                     with open(f"error_logs/error_{idx}.cng", "w") as save_file:
                         save_file.write(error)
 
-                # different = is_error_different(error)
                 # print(f"Found error: {error_type}")
-                # print(f'Is diffrent: {different}')
                 # line1 = error.split('\n')[0] if len(error.split('\n')) > 0 else ""
                 # line2 = error.split('\n')[1] if len(error.split('\n')) > 1 else ""
                 # line3 = error.split('\n')[2] if len(error.split('\n')) > 2 else ""
-                # if not ("SEGV" in line3 or "BUS" in line3 or "heap-buffer-overflow" in line2 or "Cannot apply remove_w_clause" in line1):
+                # if not ("SEGV" in line3 or "BUS" in line3 or "heap-buffer-overflow" in line2 or "Cannot apply remove_w_clause" in line1 or "Timeout" in line1):
                 #     update_saved_errors(error_type, INPUT_FILE)
                 #     with open(f"error_logs/error_{idx}.cng", "w") as save_file:
                 #         save_file.write(error)
