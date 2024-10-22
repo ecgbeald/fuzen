@@ -87,6 +87,13 @@ def add_infeasible_clause(input_content, rng = random.Random()):
 
     return '\n'.join(lines)
 
+def change_clauses(input_content, rng = random.Random()):
+    lines = input_content.split('\n')
+
+    lines[0] = change_clause_num(lines[0], rng.randint(-5, 5))
+
+    return '\n'.join(lines)
+
 # def duplicate_many_lines(input_content, rng = random.Random()):
 #     lines = input_content.split('\n')
 #     line = lines[rng.randint(0, len(lines)-1)]
@@ -130,7 +137,7 @@ def mutate(input_file, rng = random.Random()):
         output = rng.choices(
                         [
                             flip_random_number, add_trivial_clause, add_infeasible_clause, randomize_lines,
-                            delete_random_line, duplicate_line
+                            delete_random_line, duplicate_line, change_clauses
                             # delete_random_number, duplicate_line, delete_random_character, randomize_lines, 
                             # add_trivial_clause, add_infeasible_clause, duplicate_many_lines, 
                             # add_long_clause
