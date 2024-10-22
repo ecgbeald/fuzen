@@ -133,7 +133,7 @@ if __name__ == "__main__":
                 error_type = update_saved_errors(error, INPUT_FILE)
                 print(saved_errors)
                 print("\n".join(unseen_errors(error)))
-                print("===\nDistinct errors found:\n" + "\n".join(list(set([str(item) for p, sublist in saved_errors for item in sublist]))))
+                print("===\nDistinct errors found:\n" + "\n".join(list(set([str(item) for p, sublist, _ in saved_errors for item in sublist]))))
                 if len(error_type) > 0:
                     with open(f"error_logs/error_{idx}.cng", "w") as save_file:
                         save_file.write(error)
@@ -148,7 +148,7 @@ if __name__ == "__main__":
                 #         save_file.write(error)
 
         idx += 1
-        if time.time() - start_time > 100:
+        if time.time() - start_time > 1000:
             break
 
         print()
