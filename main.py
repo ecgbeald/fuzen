@@ -41,8 +41,7 @@ def main(sut_path, input_path, seed, mutation_iterations, SAVED_ERRORS, SAVED_ER
     while True:
         input_id = f"{thread_id}_{idx}"
         errors = False
-        
-        print(idx)
+    
         print("To mutate:", to_mutate)
 
         # If no inputs, generate an input
@@ -116,7 +115,6 @@ def main(sut_path, input_path, seed, mutation_iterations, SAVED_ERRORS, SAVED_ER
                 # save input
                 with open(SAVE_FILE, "w") as save_file:
                     with open(INPUT_FILE, "r") as f:
-                        print(f"saving {f.read()[:10]} to {SAVE_FILE}")
                         save_file.write(f.read())
 
             # save output

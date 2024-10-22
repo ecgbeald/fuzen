@@ -133,6 +133,10 @@ def mutate(input_file, rng = random.Random(), iterations = 10):
     with open(input_file, "r") as f:
         input_content = f.read()
 
+    if len(input_content) == 0:
+        print("MUTATE: Empty file")
+        return input_content
+    
     iterations = rng.randint(1, iterations)
     output = input_content
     for i in range(iterations):
