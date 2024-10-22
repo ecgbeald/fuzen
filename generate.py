@@ -126,11 +126,14 @@ def generate(output_file, seed = None):
     random.seed(seed)
     cnf = ""
     literals = list(set([
-        str(random.randint(0, 50)) for _ in range(random.randint(1, 50))
+        random.choice([
+            str(random.randint(1, 50)),
+            chr(random.randint(97, 122))
+        ]) for _ in range(random.randint(0, 50))
     ]))
     literals = literals + [f"-{l}" for l in literals]
     clauses = [
-        " ".join([random.choice(literals) for _ in range(random.randint(1, 50))]) + " 0" for _ in range(random.randint(1, 50))
+        " ".join([random.choice(literals) for _ in range(random.randint(0, 50))]) + " 0" for _ in range(random.randint(0, 50))
     ]
     header = "p cnf " + str(len(literals)) + " " + str(len(clauses)) + "\n"
     cnf = header + "\n".join(clauses)
