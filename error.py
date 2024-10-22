@@ -14,7 +14,17 @@ def update_saved_errors(error_input:str, tmp_input_file_location: str):
     current_type = categorise_error(error_input)
     if len(current_type) == 0:
         return set()
-    current_priority = 5
+    segv_priority = 1
+    heap_buffer_overflow_priority = 1
+    current_priority = 0
+    type_priority = 50
+    for error in current_type:
+        if error == ErrorType.SIG_SEGV:
+            current_priority += segv_priority
+        if error == heap_buffer_overflow_priority:
+            current_priority += heap_buffer_overflow_priority
+        else:
+            current_priority += type_priority
     lowest_priority_idx = 21
     min_priority = 9999
     new_type = True
@@ -27,7 +37,7 @@ def update_saved_errors(error_input:str, tmp_input_file_location: str):
         if not stored_type.symmetric_difference(current_type):
             new_type = False
     if new_type:
-        current_priority += 5
+        current_priority += 1000
 
     if current_priority > min_priority and lowest_priority_idx != 21:
         saved_errors[lowest_priority_idx] = (current_priority, current_type)

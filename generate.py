@@ -5,7 +5,7 @@ MAX_INT = sys.maxsize
 
 def generate(output_file, rng):
     cnf = ""
-    num_literals = rng.randint(1, 1000) * 2
+    num_literals = rng.randint(1, 25) * 2
     num_clauses = rng.randint(1, 1000)
     literals = []
     for _ in range(rng.randint(1, num_literals // 2)):
