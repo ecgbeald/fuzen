@@ -118,3 +118,34 @@ def mutate(input_file, seed = None):
 
     with open(input_file, "w") as f:
         f.write(output)
+
+MIN_INT = -sys.maxsize - 1
+MAX_INT = sys.maxsize
+
+def generate(output_file, seed = None):
+    cnf = ""
+    total_literals = 0
+    total_clauses = 0
+    random.seed(seed)
+    num_lines = int(random.gammavariate(2, 2))
+    num_lines = max(1, min(num_lines, MAX_INT))
+    total_clauses = num_lines
+    for line_num in range(num_lines):
+        line = ""
+        num_literals = int(random.gammavariate(2, 2))
+        num_literals = max(1, min(num_literals, MAX_INT))
+        total_literals += num_literals
+        for literal_num in range(num_literals):
+            literal = random.randint(MIN_INT, MAX_INT)
+            line += str(literal) + " "
+        line += "0\n"
+        cnf += line
+    # Add header
+    header = f"p cnf {total_literals} {total_clauses}\n"
+    cnf = header + cnf
+
+    with open(output_file, "w") as f:
+        f.write(cnf)
+
+if __name__ == "__main__":
+    generate("input.cnf")
