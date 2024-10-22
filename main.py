@@ -23,7 +23,7 @@ def delete_files(inputs = False, error_logs = False, input_logs = False):
         shutil.rmtree("input_logs")
 
 
-def main(sut_path, input_path, seed, COVERAGE_LOCK, SAVED_ERRORS_LOCK):
+def main(sut_path, input_path, seed, mutation_iterations, COVERAGE_LOCK, SAVED_ERRORS_LOCK):
 
     rng = random.Random(seed)
 
@@ -31,18 +31,12 @@ def main(sut_path, input_path, seed, COVERAGE_LOCK, SAVED_ERRORS_LOCK):
 
     INPUT_FILE = f"input_{thread_id}.cnf"
 
-    # idea: keep filenames here, maintain a new queue for to_mutate
-    filenames = [str(input_path) + f"/{f}" for f in os.listdir(input_path)]
     # interesting files we want to mutate
     to_mutate = []
     # consider add a chance for to_mutate to be back in the filenames if it is reallyerrors
     MAX_MUTATIONS = 5
 
-    iteration = 0
-    gen = 0
-    # idx is the test no
     idx = 0
-
     start_time = time.time()
     while True:
         input_id = f"{thread_id}_{idx}"
@@ -60,7 +54,7 @@ def main(sut_path, input_path, seed, COVERAGE_LOCK, SAVED_ERRORS_LOCK):
         else:
             INPUT_FILE = to_mutate.pop(0)
             print("Mutating", INPUT_FILE)
-            mutate(INPUT_FILE, rng)
+            mutate(INPUT_FILE, rng, mutation_iterations)
 
         try:
             COVERAGE_LOCK.acquire()
@@ -157,13 +151,16 @@ if __name__ == "__main__":
     COVERAGE_LOCK = threading.Lock()
 
     threads: list[threading.Thread] = []
+    mutation_iterations = 1
     for t_seed in range(seed, seed + num_threads):
+        mutation_iterations += 1
         thread = threading.Thread(
             target=main, 
             args=(
                 sut_path, 
                 input_path, 
-                t_seed, 
+                t_seed,
+                mutation_iterations,
                 SAVED_ERRORS_LOCK, 
                 COVERAGE_LOCK
             )
