@@ -1,4 +1,5 @@
 import random
+from string import digits, ascii_lowercase, ascii_uppercase, punctuation
 
 def get_random_variable(input_content, rng = random.Random()):
     numbers = input_content.split(' ')
@@ -43,6 +44,13 @@ def delete_random_character(input_content, rng = random.Random()):
         return input_content
     index = rng.randint(0, len(input_content)-1)
     return input_content[:index] + input_content[index+1:]
+
+def add_random_character(input_content, rng = random.Random()):
+    if len(input_content) == 1:
+        return input_content
+    index = rng.randint(0, len(input_content)-1)
+    index = rng.randint(0, len(input_content)-1)
+    return input_content[:index] + random.choice(punctuation + digits + ascii_lowercase) +input_content[index+1:]
 
 def add_random_number(input_content, rng = random.Random()):
     index = rng.randint(0, len(input_content) - 1)
@@ -150,16 +158,20 @@ def mutate(input_file, rng = random.Random()):
     with open(input_file, "r") as f:
         input_content = f.read()
 
-    iterations = rng.randint(1, 100)
+    iterations = rng.randint(1, 2)
     output = input_content
     for i in range(iterations):
         output = rng.choices(
                         [
-                            flip_random_number, add_trivial_clause, add_infeasible_clause, randomize_lines,
-                            delete_random_line, duplicate_line, change_clauses, delete_random_character
-                            # delete_random_number, duplicate_line, delete_random_character, randomize_lines, 
-                            # add_trivial_clause, add_infeasible_clause, duplicate_many_lines, 
-                            # add_long_clause
+                            flip_random_number, 
+                            add_trivial_clause, 
+                            add_infeasible_clause, 
+                            randomize_lines,
+                            delete_random_line, 
+                            duplicate_line, 
+                            change_clauses, 
+                            delete_random_character, 
+                            add_random_character
                         ], 
                         # weights = 
                         # [
