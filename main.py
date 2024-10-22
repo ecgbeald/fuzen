@@ -42,13 +42,13 @@ def main(sut_path, input_path, seed, mutation_iterations, SAVED_ERRORS, SAVED_ER
         input_id = f"{thread_id}_{idx}"
         errors = False
     
-        print("To mutate:", to_mutate)
+        print("To mutate:", to_mutate[:5], f"(length: {len(to_mutate)})" )
 
         # If no inputs, generate an input
         if len(to_mutate) <= 0:
             generate(INPUT_FILE, rng)
             # maybe mutate
-            if rng.random() < 0.7:
+            if rng.random() < 0.2:
                 mutate(INPUT_FILE, rng, mutation_iterations)
         else:
             shutil.copy(to_mutate.pop(0), INPUT_FILE)
