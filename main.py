@@ -1,10 +1,9 @@
 import os, subprocess, time, shutil, argparse
 from pathlib import Path
 from generate import *
-from parser_1 import *
+from error import *
 from coverage import *
 
-saved_errors = []
 
 def arg_parse():
     parser = argparse.ArgumentParser()
@@ -12,53 +11,6 @@ def arg_parse():
     parser.add_argument("INPUT_PATH", type=Path)
     parser.add_argument("SEED", type=int)
     return parser.parse_args()
-
-# initialise array of 20
-def init_saved_errors():
-    for i in range(20):
-        saved_errors.append((0, ErrorType.UNIDENTIFIED))
-
-# update errors base on priority
-def update_saved_errors(errortype, tmp_input_file):
-    new_type = True
-    current_types = [0] * ErrorType.ERROR_END.value[0]
-    for i in range(20):
-        saved_error_type = saved_errors[i][1].value[0]
-        # print(saved_error_type)
-        current_types[saved_error_type] += 1
-        if saved_error_type == errortype.value[0]:
-            new_type = False
-    # print(new_type)
-
-    new_priority = 0
-
-    if new_type:
-        new_priority = 5
-    if errortype == ErrorType.UNIDENTIFIED:
-        new_priority = 0
-
-    min_priority = 999
-    min_idx = -1
-    for i in range(20):
-        if saved_errors[i][0] < min_priority:
-            min_priority = saved_errors[i][0]
-            min_idx = i
-
-    if min_priority != 999 and min_priority < new_priority:
-        print(f"changing index", min_idx, "to priority", new_priority)
-        saved_errors[min_idx] = (new_priority, errortype)
-        # copy to the original file
-        shutil.copy(tmp_input_file, f"fuzzed-tests/input_{min_idx}.cnf")
-    else:
-        print(f"unchanged")
-
-
-# if __name__ == "__main__":
-#     init_saved_errors()
-#     for i in range(25):
-#         update_saved_errors(ErrorType.SEGV, "input.cnf")
-#     for i in range(25):
-#         update_saved_errors(ErrorType.UNIDENTIFIED, "input.cnf")
 
 
 if __name__ == "__main__":
@@ -107,19 +59,6 @@ if __name__ == "__main__":
             print("[#] Starting iteration", iteration)
             mutation = []
 
-        # run manual inputs first
-        # if iteration == 0 and idx < len(MANUAL_INPUT):
-        #     with open(INPUT_FILE, "w") as f:
-        #         f.write(MANUAL_INPUT[idx])
-        #     print(f"Index {idx}: manual input")
-        # else:
-        #     f_name = filenames[idx % len(filenames)]
-        #     shutil.copy(f_name, INPUT_FILE)
-        #     print(f"Processing {f_name}")
-        #     # if not "inputs/" in f_name:
-        #     # mutate(input_file)
-        #     mutate(INPUT_FILE, seed)
-
         # Generate an input
         generate(INPUT_FILE, seed + idx)
         random.seed(seed + idx)
@@ -133,9 +72,10 @@ if __name__ == "__main__":
         interesting = False
 
         with open("error.log", "w") as log_file:
-            process = subprocess.Popen([f"{sut_path}/runsat.sh", INPUT_FILE], stdout=subprocess.DEVNULL, stderr=log_file)
+            process = subprocess.Popen([f"{sut_path}/runsat.sh", INPUT_FILE], stdout=subprocess.DEVNULL,
+                                       stderr=log_file)
             try:
-                return_code = process.wait(timeout=10)
+                return_code = process.wait(timeout=5)
                 if return_code != 0:
                     print("Process returned non-zero exit code.")
                     interesting = True
@@ -180,22 +120,27 @@ if __name__ == "__main__":
             with open("error.log", "r") as f:
                 error = f.read()
                 # print(error)
-                error_type = parse_error(error)
-                different = is_error_different(error)
-                print(f"Found error: {error_type}")
-                print(f'Is diffrent: {different}')
-                line1 = error.split('\n')[0] if len(error.split('\n')) > 0 else ""
-                line2 = error.split('\n')[1] if len(error.split('\n')) > 1 else ""
-                line3 = error.split('\n')[2] if len(error.split('\n')) > 2 else ""
-                if not ("SEGV" in line3 or "BUS" in line3 or "heap-buffer-overflow" in line2 or "Cannot apply remove_w_clause" in line1):
-                    update_saved_errors(error_type, INPUT_FILE)
+                error_type = update_saved_errors(error, INPUT_FILE)
+                print(saved_errors)
+                if len(error_type) > 0:
                     with open(f"error_logs/error_{idx}.cng", "w") as save_file:
                         save_file.write(error)
+
+                # different = is_error_different(error)
+                # print(f"Found error: {error_type}")
+                # print(f'Is diffrent: {different}')
+                # line1 = error.split('\n')[0] if len(error.split('\n')) > 0 else ""
+                # line2 = error.split('\n')[1] if len(error.split('\n')) > 1 else ""
+                # line3 = error.split('\n')[2] if len(error.split('\n')) > 2 else ""
+                # if not ("SEGV" in line3 or "BUS" in line3 or "heap-buffer-overflow" in line2 or "Cannot apply remove_w_clause" in line1):
+                #     update_saved_errors(error_type, INPUT_FILE)
+                #     with open(f"error_logs/error_{idx}.cng", "w") as save_file:
+                #         save_file.write(error)
 
         idx += 1
         if time.time() - start_time > 200:
             break
 
         print()
-    
+
     print_coverage_info(best_coverage, num_lines)
