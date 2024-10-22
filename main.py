@@ -2,7 +2,7 @@ import os, subprocess, time, shutil, argparse
 from pathlib import Path
 from generate import mutate, MANUAL_INPUT
 from parser_1 import parse_error, ErrorType, is_error_different
-from coverage import get_coverage
+from coverage import get_coverage, print_coverage_info
 
 saved_errors = []
 
@@ -140,18 +140,18 @@ if __name__ == "__main__":
                 log_file.write("Timeout\n")
 
         coverage_interesting = False
-        coverage = get_coverage(sut_path)
+        coverage, num_lines = get_coverage(sut_path)
         for filename in coverage.keys():
             if filename in best_coverage:
-                difference = set(coverage[filename]) - set(best_coverage[filename])
+                difference = coverage[filename] - best_coverage[filename]
             else:
                 best_coverage[filename] = coverage[filename]
-                difference = set(coverage[filename])
+                difference = coverage[filename]
             if difference:
                 # new lines covered!
                 print("new coverage", filename, difference)
                 coverage_interesting = True
-                best_coverage[filename].extend(list(difference))
+                best_coverage[filename] = best_coverage[filename].union(difference)
 
         # need to change what is interesting
         if interesting and len(mutation) <= MAX_MUTATIONS:
@@ -184,7 +184,9 @@ if __name__ == "__main__":
                         save_file.write(error)
 
         idx += 1
-        if time.time() - start_time > 1000:
+        if time.time() - start_time > 200:
             break
 
         print()
+    
+    print_coverage_info(best_coverage, num_lines)
