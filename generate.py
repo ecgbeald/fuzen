@@ -1,4 +1,4 @@
-import sys, random, hashlib
+import random, sys, hashlib
 
 MIN_INT = -sys.maxsize - 1
 MAX_INT = sys.maxsize
@@ -8,10 +8,10 @@ def generate(output_file, rng):
     num_literals = rng.randint(1, 25) * 2
     num_clauses = rng.randint(1, 1000)
     literals = []
-    for _ in range(rng.randint(1, num_literals // 2)):
+    for _ in range(rng.randint(1, num_literals)):
         lit = str(rng.randint(1, 50))
         literals.append(lit)
-        literals.append(f"-{lit}")
+        # literals.append(f"-{lit}")
 
     for _ in range(num_clauses):
         clause = ""
