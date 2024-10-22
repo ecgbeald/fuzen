@@ -122,6 +122,9 @@ if __name__ == "__main__":
 
         # Generate an input
         generate(INPUT_FILE, seed + idx)
+        random.seed(seed + idx)
+        if random.random() < 0.2:
+            mutate(INPUT_FILE, seed + idx)
 
         with open(INPUT_FILE, "r") as f:
             if len(f.read()) == 0:
@@ -132,7 +135,7 @@ if __name__ == "__main__":
         with open("error.log", "w") as log_file:
             process = subprocess.Popen([f"{sut_path}/runsat.sh", INPUT_FILE], stdout=subprocess.DEVNULL, stderr=log_file)
             try:
-                return_code = process.wait(timeout=15)
+                return_code = process.wait(timeout=10)
                 if return_code != 0:
                     print("Process returned non-zero exit code.")
                     interesting = True
@@ -181,9 +184,10 @@ if __name__ == "__main__":
                 different = is_error_different(error)
                 print(f"Found error: {error_type}")
                 print(f'Is diffrent: {different}')
-                line2 = error.split('\n')[1]
-                line3 = error.split('\n')[2]
-                if not ("SEGV" in line3 or "BUS" in line3 or "heap-buffer-overflow" in line2):
+                line1 = error.split('\n')[0] if len(error.split('\n')) > 0 else ""
+                line2 = error.split('\n')[1] if len(error.split('\n')) > 1 else ""
+                line3 = error.split('\n')[2] if len(error.split('\n')) > 2 else ""
+                if not ("SEGV" in line3 or "BUS" in line3 or "heap-buffer-overflow" in line2 or "Cannot apply remove_w_clause" in line1):
                     update_saved_errors(error_type, INPUT_FILE)
                     with open(f"error_logs/error_{idx}.cng", "w") as save_file:
                         save_file.write(error)

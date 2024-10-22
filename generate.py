@@ -123,26 +123,17 @@ MIN_INT = -sys.maxsize - 1
 MAX_INT = sys.maxsize
 
 def generate(output_file, seed = None):
-    cnf = ""
-    total_literals = 0
-    total_clauses = 0
     random.seed(seed)
-    num_lines = int(random.gammavariate(2, 2))
-    num_lines = max(1, min(num_lines, MAX_INT))
-    total_clauses = num_lines
-    for line_num in range(num_lines):
-        line = ""
-        num_literals = int(random.gammavariate(2, 2))
-        num_literals = max(1, min(num_literals, MAX_INT))
-        total_literals += num_literals
-        for literal_num in range(num_literals):
-            literal = random.randint(MIN_INT, MAX_INT)
-            line += str(literal) + " "
-        line += "0\n"
-        cnf += line
-    # Add header
-    header = f"p cnf {total_literals} {total_clauses}\n"
-    cnf = header + cnf
+    cnf = ""
+    literals = list(set([
+        str(random.randint(0, 50)) for _ in range(random.randint(1, 50))
+    ]))
+    literals = literals + [f"-{l}" for l in literals]
+    clauses = [
+        " ".join([random.choice(literals) for _ in range(random.randint(1, 50))]) + " 0" for _ in range(random.randint(1, 50))
+    ]
+    header = "p cnf " + str(len(literals)) + " " + str(len(clauses)) + "\n"
+    cnf = header + "\n".join(clauses)
 
     with open(output_file, "w") as f:
         f.write(cnf)
