@@ -20,7 +20,7 @@ if __name__ == "__main__":
     input_path = args.INPUT_PATH
     seed = args.SEED
 
-    random.seed(seed)
+    rng = random.Random(seed)
 
     Path('./error_logs').mkdir(parents=True, exist_ok=True)
     # keep 20 in here
@@ -62,9 +62,9 @@ if __name__ == "__main__":
             mutation = []
 
         # Generate an input
-        generate(INPUT_FILE, seed + idx)
-        if random.random() < 0.2:
-            mutate(INPUT_FILE, seed + idx)
+        generate(INPUT_FILE, rng)
+        if rng.random() < 0.2:
+            mutate(INPUT_FILE, rng)
 
         with open(INPUT_FILE, "r") as f:
             if len(f.read()) == 0:
