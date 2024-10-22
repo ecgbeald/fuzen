@@ -102,12 +102,6 @@ def change_clauses(input_content, rng = random.Random()):
 
     return '\n'.join(lines)
 
-# def duplicate_many_lines(input_content, rng = random.Random()):
-#     lines = input_content.split('\n')
-#     line = lines[rng.randint(0, len(lines)-1)]
-#     lines.insert(rng.randint(0, len(lines)-1), line * 2000)
-#     return '\n'.join(lines)
-
 def is_number(n):
     try:
         int(n)
@@ -135,11 +129,11 @@ def flip_random_number(input_content, rng = random.Random()):
 #     line += '0'
 #     return input_content + line
 
-def mutate(input_file, rng = random.Random()):
+def mutate(input_file, rng = random.Random(), iterations = 10):
     with open(input_file, "r") as f:
         input_content = f.read()
 
-    iterations = rng.randint(1, 2)
+    iterations = rng.randint(1, iterations)
     output = input_content
     for i in range(iterations):
         output = rng.choices(
@@ -162,6 +156,8 @@ def mutate(input_file, rng = random.Random()):
                         # ],
                         k = 1
                         )[0](output, rng)
+        if len(output) == 0:
+            output = input_content
 
     with open(input_file, "w") as f:
         f.write(output)
