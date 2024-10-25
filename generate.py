@@ -5,13 +5,29 @@ MAX_INT = sys.maxsize
 
 def generate(output_file, rng):
     cnf = ""
-    num_literals = rng.randint(1, 25) * 2
-    num_clauses = rng.randint(1, 1000)
+    if rng.random() < 0.25:
+        # low both
+        num_literals = rng.randint(1, 5) 
+        num_clauses = rng.randint(1, 20)
+    elif rng.random() < 0.5:
+        # lots of clauses
+        num_literals = rng.randint(1, 10) 
+        num_clauses = rng.randint(1, 2000)
+    elif rng.random() < 0.75:
+        # more literals
+        num_literals = rng.randint(1, 100) 
+        num_clauses = rng.randint(1, 200)
+    else:
+        # high both
+        num_literals = rng.randint(1, 100) 
+        num_clauses = rng.randint(1, 2000)
     literals = []
     for _ in range(rng.randint(1, num_literals)):
         lit = str(rng.randint(1, 50))
-        literals.append(lit)
-        # literals.append(f"-{lit}")
+        if rng.random() < 0.6:
+            literals.append(lit)
+        else:
+            literals.append(f"-{lit}")
 
     for _ in range(num_clauses):
         clause = ""
