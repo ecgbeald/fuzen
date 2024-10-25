@@ -33,7 +33,7 @@ def delete_files(inputs = False, error_logs = False, input_logs = False):
         shutil.rmtree("input_logs")
 
 
-def main(sut_path, input_path, seed, mutation_iterations, SAVED_ERRORS, SAVED_ERRORS_LOCK, COVERAGE, N_LINES: dict, COVERAGE_LOCK):
+def main(sut_path, input_path, seed, mutation_iterations, chance_of_mutation, time_limit, SAVED_ERRORS, SAVED_ERRORS_LOCK, COVERAGE, N_LINES: dict, COVERAGE_LOCK):
 
     rng = random.Random(seed)
 
@@ -44,7 +44,7 @@ def main(sut_path, input_path, seed, mutation_iterations, SAVED_ERRORS, SAVED_ER
     # interesting files we want to mutate
     to_mutate = []
     # consider add a chance for to_mutate to be back in the filenames if it is reallyerrors
-    MAX_MUTATIONS = 3
+    MAX_MUTATIONS = 5
 
     idx = 0
     start_time = time.time()
@@ -59,7 +59,7 @@ def main(sut_path, input_path, seed, mutation_iterations, SAVED_ERRORS, SAVED_ER
         if len(to_mutate) <= 0:
             generate(INPUT_FILE, rng)
             # maybe mutate
-            if rng.random() < 0.2:
+            if rng.random() < chance_of_mutation:
                 mutate(INPUT_FILE, rng, mutation_iterations)
         else:
             shutil.copy(to_mutate.pop(0), INPUT_FILE)
@@ -140,7 +140,7 @@ def main(sut_path, input_path, seed, mutation_iterations, SAVED_ERRORS, SAVED_ER
                         save_file.write(error)
 
         idx += 1
-        if time.time() - start_time > 220:
+        if time.time() - start_time > time_limit:
             break
 
         print()
@@ -168,7 +168,6 @@ if __name__ == "__main__":
     for solver_file in solver_files:
         os.remove(str(sut_path) + '/' + solver_file)
 
-    num_threads = 1
 
     COVERAGE = {}
     NUM_LINES = {}
@@ -177,31 +176,21 @@ if __name__ == "__main__":
     SAVED_ERRORS_LOCK = FakeLock()
     COVERAGE_LOCK = FakeLock()
 
-    # threads: list[threading.Thread] = []
+    num_iterations = 3
+
     mutation_iterations = 1
-    for t_seed in range(seed, seed + num_threads):
+    chance_of_mutation = 0.2
+    for t_seed in range(seed, seed + num_iterations):
         mutation_iterations += 1
-        # thread = threading.Thread(
-        #     target=main, 
-        #     args=(
-        #         sut_path, 
-        #         input_path, 
-        #         t_seed,
-        #         mutation_iterations,
-        #         SAVED_ERRORS,
-        #         SAVED_ERRORS_LOCK, 
-        #         COVERAGE,
-        #         NUM_LINES,
-        #         COVERAGE_LOCK,
-        #     )
-        # )
-        # threads.append(thread)
-        # thread.start()
+        chance_of_mutation += 0.6 / num_iterations
+        time_limit = 10 * 60 / num_iterations
         main(
                 sut_path, 
                 input_path, 
                 t_seed,
                 mutation_iterations,
+                chance_of_mutation,
+                time_limit,
                 SAVED_ERRORS,
                 SAVED_ERRORS_LOCK, 
                 COVERAGE,
