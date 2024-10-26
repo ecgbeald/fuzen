@@ -12,27 +12,44 @@ def generate(output_file, rng):
     elif rng.random() < 0.5:
         # lots of clauses
         num_literals = rng.randint(1, 10) 
-        num_clauses = rng.randint(1, 2000)
+        num_clauses = rng.randint(1, 100)
     elif rng.random() < 0.75:
         # more literals
         num_literals = rng.randint(1, 100) 
-        num_clauses = rng.randint(1, 200)
+        num_clauses = rng.randint(1, 80)
     else:
         # high both
         num_literals = rng.randint(1, 100) 
-        num_clauses = rng.randint(1, 2000)
+        num_clauses = rng.randint(1, 1000)
     literals = []
     for _ in range(rng.randint(1, num_literals)):
-        lit = str(rng.randint(1, 50))
-        if rng.random() < 0.6:
+        lit = str(rng.randint(1, max(50, num_literals - 2)))
+        if rng.random() < 0.8:
+            literals.append(lit)
+            literals.append(f"-{lit}")
+        elif rng.random() < 0.5:
             literals.append(lit)
         else:
             literals.append(f"-{lit}")
 
     for _ in range(num_clauses):
         clause = ""
-        for _ in range(rng.randint(1, 100)):
-            clause += rng.choice(literals) + " "
+        rand = rng.random()
+        if rand < 0.01:
+            # empty clause
+            pass
+        elif rand < 0.1:
+            # small clause
+            for _ in range(rng.randint(1, 5)):
+                clause += rng.choice(literals) + " "
+        elif rand < 0.75:
+            # normal clause
+            for _ in range(rng.randint(1, 50)):
+                clause += rng.choice(literals) + " "
+        else:
+            # big clause
+            for _ in range(rng.randint(1, 200)):
+                clause += rng.choice(literals) + " "
         clause += "0\n"
         cnf += clause
 

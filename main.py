@@ -5,16 +5,6 @@ from generate import *
 from error import *
 from coverage import *
 
-class FakeLock():
-    def acquire(self):
-        pass
-    def release(self):
-        pass
-    def __enter__(self):
-        pass
-    def __exit__(self, exc_type, exc_value, traceback):
-        pass
-
 def arg_parse():
     parser = argparse.ArgumentParser()
     parser.add_argument("SUT_PATH", type=Path)
@@ -33,7 +23,7 @@ def delete_files(inputs = False, error_logs = False, input_logs = False):
         shutil.rmtree("input_logs")
 
 
-def main(sut_path, input_path, seed, mutation_iterations, chance_of_mutation, time_limit, SAVED_ERRORS, SAVED_ERRORS_LOCK, COVERAGE, N_LINES: dict, COVERAGE_LOCK):
+def main(sut_path, input_path, seed, mutation_iterations, chance_of_mutation, time_limit, SAVED_ERRORS, COVERAGE, N_LINES: dict):
 
     rng = random.Random(seed)
 
@@ -44,7 +34,8 @@ def main(sut_path, input_path, seed, mutation_iterations, chance_of_mutation, ti
     # interesting files we want to mutate
     to_mutate = []
     # consider add a chance for to_mutate to be back in the filenames if it is reallyerrors
-    MAX_MUTATIONS = 5
+    MAX_MUTATIONS = 10
+
 
     idx = 0
     start_time = time.time()
@@ -66,13 +57,6 @@ def main(sut_path, input_path, seed, mutation_iterations, chance_of_mutation, ti
             print("Mutating", INPUT_FILE)
             mutate(INPUT_FILE, rng, mutation_iterations)
 
-        with open(INPUT_FILE, "r") as f:
-            cnf = f.read()
-            if len(cnf) == 0:
-                continue
-            else:
-                print(f"Input Hash: {get_hash(cnf)}")
-
         with open("error.log", "w") as log_file:
             process = subprocess.Popen([
                 f"{sut_path}/runsat.sh", INPUT_FILE], 
@@ -80,7 +64,7 @@ def main(sut_path, input_path, seed, mutation_iterations, chance_of_mutation, ti
                 stderr=log_file
             )
             try:
-                return_code = process.wait(timeout=10)
+                return_code = process.wait(timeout=8)
                 if return_code != 0:
                     print("Process returned non-zero exit code.")
                     errors = True
@@ -92,14 +76,10 @@ def main(sut_path, input_path, seed, mutation_iterations, chance_of_mutation, ti
                 errors = True
                 log_file.write("Timeout\n")
 
-        try:
-            COVERAGE_LOCK.acquire()
-            coverage, num_lines = get_coverage(sut_path)
-            N_LINES.update(num_lines)
-        finally:
-            COVERAGE_LOCK.release()
+        coverage, num_lines = get_coverage(sut_path)
+        N_LINES.update(num_lines)
         
-        new_coverage = update_coverage(coverage, COVERAGE, COVERAGE_LOCK) 
+        new_coverage = update_coverage(coverage, COVERAGE) 
 
         if new_coverage:
             idx += 1
@@ -131,9 +111,9 @@ def main(sut_path, input_path, seed, mutation_iterations, chance_of_mutation, ti
             # save output
             with open("error.log", "r") as f:
                 error = f.read()
-                error_type = update_saved_errors(error, INPUT_FILE, SAVED_ERRORS, SAVED_ERRORS_LOCK)
-                print_saved_errors(SAVED_ERRORS, SAVED_ERRORS_LOCK)
-                print_unique_saved_errors(SAVED_ERRORS, SAVED_ERRORS_LOCK)
+                error_type = update_saved_errors(error, INPUT_FILE, SAVED_ERRORS)
+                print_saved_errors(SAVED_ERRORS)
+                print_unique_saved_errors(SAVED_ERRORS)
                 print("Unseen: " + "\n".join(unseen_errors(error)))
                 if len(error_type) > 0:
                     with open(f"error_logs/error_{input_id}.cng", "w") as save_file:
@@ -142,7 +122,8 @@ def main(sut_path, input_path, seed, mutation_iterations, chance_of_mutation, ti
         idx += 1
         if time.time() - start_time > time_limit:
             break
-
+        
+        print_coverage_info(COVERAGE, N_LINES)
         print()
 
 if __name__ == "__main__":
@@ -173,17 +154,13 @@ if __name__ == "__main__":
     NUM_LINES = {}
     SAVED_ERRORS = [(0, set(), set()) for _ in range(20)]
 
-    SAVED_ERRORS_LOCK = FakeLock()
-    COVERAGE_LOCK = FakeLock()
-
-    num_iterations = 3
+    num_iterations = 4
+    max_mutations = 5
 
     mutation_iterations = 1
     chance_of_mutation = 0.2
     for t_seed in range(seed, seed + num_iterations):
-        mutation_iterations += 1
-        chance_of_mutation += 0.6 / num_iterations
-        time_limit = 10 * 60 / num_iterations
+        time_limit = 30 * 60 / num_iterations
         main(
                 sut_path, 
                 input_path, 
@@ -192,14 +169,14 @@ if __name__ == "__main__":
                 chance_of_mutation,
                 time_limit,
                 SAVED_ERRORS,
-                SAVED_ERRORS_LOCK, 
                 COVERAGE,
                 NUM_LINES,
-                COVERAGE_LOCK,
             )
-    
-    # for thread in threads:
-    #     thread.join()
+        mutation_iterations += 1
+        max_mutations += 3
+        chance_of_mutation += 0.7 / num_iterations
 
-    print_total_coverage_info(COVERAGE, NUM_LINES, COVERAGE_LOCK)
-    print_saved_errors(SAVED_ERRORS, SAVED_ERRORS_LOCK)
+    
+
+    print_coverage_info(COVERAGE, NUM_LINES)
+    print_saved_errors(SAVED_ERRORS)

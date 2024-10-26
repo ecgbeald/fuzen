@@ -53,7 +53,7 @@ def get_coverage(solver_path):
 #             best_coverage[filename] = best_coverage[filename].union(difference)
 #     return (new_coverage, best_coverage)
 
-def print_coverage_info(executed, totals):
+def print_coverage_info_detailed(executed, totals):
     print("\nCoverage information:\n")
     total_executed = 0
     total_lines = 0
@@ -67,27 +67,27 @@ def print_coverage_info(executed, totals):
     percent = total_executed / total_lines * 100
     print(f"Total coverage: {percent:.1f}%\n")
 
-# Returns True if new coverage was added
-def update_coverage(coverage, COVERAGE, lock):
-    try:
-        lock.acquire()
-        for filename in coverage.keys():
-            if filename in COVERAGE:
-                difference = coverage[filename] - COVERAGE[filename]
-            else:
-                COVERAGE[filename] = coverage[filename]
-                difference = coverage[filename]
-            if difference:
-                print("New coverage:", filename, difference)
-                COVERAGE[filename] = COVERAGE[filename].union(difference)
-                return True
-        return False
-    finally:
-        lock.release()
+def print_coverage_info(executed, totals):
+    total_executed = 0
+    total_lines = 0
+    for key in executed.keys():
+        # add to total count
+        total_executed += len(executed[key])
+        total_lines += totals[key]
+    percent = total_executed / total_lines * 100
+    print(f"Total coverage: {percent:.1f}%\n")
 
-def print_total_coverage_info(COVERAGE, NUM_LINES, lock):
-    try:
-        lock.acquire()
-        print_coverage_info(COVERAGE, NUM_LINES)
-    finally:
-        lock.release()
+# Returns True if new coverage was added
+def update_coverage(coverage, COVERAGE):
+    for filename in coverage.keys():
+        if filename in COVERAGE:
+            difference = coverage[filename] - COVERAGE[filename]
+        else:
+            COVERAGE[filename] = coverage[filename]
+            difference = coverage[filename]
+        if difference:
+            print("New coverage:", filename, difference)
+            COVERAGE[filename] = COVERAGE[filename].union(difference)
+            return True
+    return False
+
