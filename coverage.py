@@ -27,11 +27,17 @@ def get_coverage(solver_path):
     original_directory = os.getcwd()
     os.chdir(solver_path)
     for solver_file in solver_files:
-        # run gcov on each file
-        process = subprocess.Popen(["gcov", solver_file + ".gcno"], stdout=subprocess.DEVNULL)
-        process.wait()
-        # add coverage information to dictionaries
-        lines, total = process_coverage_file(solver_file + ".c.gcov")
+        if solver_file + ".gcda" not in os.listdir():
+            #  not executed yet, ignore coverage file
+            lines = set()
+            _, total = process_coverage_file(solver_file + ".c.gcov")
+        else:
+            # run gcov on each file
+            process = subprocess.Popen(["gcov", solver_file + ".gcno"], stdout=subprocess.DEVNULL)
+            process.wait()
+            # add coverage information to dictionaries
+            lines, total = process_coverage_file(solver_file + ".c.gcov")
+
         executed[solver_file] = lines
         totals[solver_file] = total
     # go back to original directory
@@ -79,6 +85,7 @@ def print_coverage_info(executed, totals):
 
 # Returns True if new coverage was added
 def update_coverage(coverage, COVERAGE):
+    is_new = False
     for filename in coverage.keys():
         if filename in COVERAGE:
             difference = coverage[filename] - COVERAGE[filename]
@@ -88,6 +95,6 @@ def update_coverage(coverage, COVERAGE):
         if difference:
             print("New coverage:", filename, difference)
             COVERAGE[filename] = COVERAGE[filename].union(difference)
-            return True
-    return False
+            is_new = True
+    return is_new
 
