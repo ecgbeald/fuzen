@@ -120,6 +120,8 @@ def match_single_asan_error(error_message: str):
 
     if re.search(r"AddressSanitizer: stack-overflow", error_message):
         return ErrorType.STACK_OVERFLOW
+    if re.search(r"AddressSanitizer: stack-buffer-overflow", error_message):
+        return ErrorType.STACK_BUFFER_OVERFLOW
     if re.search(r"AddressSanitizer: stack-buffer-underflow", error_message):
         return ErrorType.STACK_BUFFER_UNDERFLOW
     if re.search(r"AddressSanitizer: stack-use-after-scope", error_message):
