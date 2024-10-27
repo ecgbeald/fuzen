@@ -42,6 +42,8 @@ class ErrorType(Enum):
     HEAP_USE_AFTER_FREE = auto()
     HEAP_BUFFER_OVERFLOW = auto()
 
+    REQUESTED_ALLOC_SIZE = auto()
+
     STACK_OVERFLOW = auto()
     STACK_BUFFER_OVERFLOW = auto()
     STACK_BUFFER_UNDERFLOW = auto()
@@ -80,6 +82,9 @@ def categorise_error(error_message: str):
     if re.search(r"AddressSanitizer: heap-buffer-overflow", error_message):
         errors.add(ErrorType.HEAP_BUFFER_OVERFLOW)
 
+    if re.search(r"AddressSanitizer: requested allocation size", error_message):
+        errors.add(ErrorType.REQUESTED_ALLOC_SIZE)
+
     if re.search(r"AddressSanitizer: stack-overflow", error_message):
         errors.add(ErrorType.STACK_OVERFLOW)
     if re.search(r"AddressSanitizer: stack-buffer-overflow", error_message):
@@ -114,9 +119,7 @@ def match_single_asan_error(error_message: str):
         return ErrorType.HEAP_BUFFER_OVERFLOW
 
     if re.search(r"AddressSanitizer: stack-overflow", error_message):
-        errors.add(ErrorType.STACK_OVERFLOW)
-    if re.search(r"AddressSanitizer: stack-buffer-overflow", error_message):
-        return ErrorType.STACK_BUFFER_OVERFLOW
+        return ErrorType.STACK_OVERFLOW
     if re.search(r"AddressSanitizer: stack-buffer-underflow", error_message):
         return ErrorType.STACK_BUFFER_UNDERFLOW
     if re.search(r"AddressSanitizer: stack-use-after-scope", error_message):
