@@ -23,7 +23,7 @@ def delete_files(inputs = False, error_logs = False, input_logs = False):
         shutil.rmtree("input_logs")
 
 
-def main(sut_path, input_path, seed, mutation_iterations, chance_of_mutation, time_limit, SAVED_ERRORS, COVERAGE, N_LINES: dict):
+def main(sut_path, inputs, seed, mutation_iterations, chance_of_mutation, time_limit, SAVED_ERRORS, COVERAGE, N_LINES: dict):
 
     rng = random.Random(seed)
 
@@ -46,8 +46,14 @@ def main(sut_path, input_path, seed, mutation_iterations, chance_of_mutation, ti
     
         print("To mutate:", to_mutate[:5], f"(length: {len(to_mutate)})" )
 
+        if len(inputs) > 0:
+            # use inputs
+            shutil.copy(inputs.pop(0), INPUT_FILE)
+            # maybe mutate
+            if rng.random() < chance_of_mutation:
+                mutate(INPUT_FILE, rng, mutation_iterations)
         # If no inputs, generate an input
-        if len(to_mutate) <= 0:
+        elif len(to_mutate) <= 0 :
             generate(INPUT_FILE, rng)
             # maybe mutate
             if rng.random() < chance_of_mutation:
@@ -56,6 +62,7 @@ def main(sut_path, input_path, seed, mutation_iterations, chance_of_mutation, ti
             shutil.copy(to_mutate.pop(0), INPUT_FILE)
             print("Mutating", INPUT_FILE)
             mutate(INPUT_FILE, rng, mutation_iterations)
+
 
         with open("error.log", "w") as log_file:
             process = subprocess.Popen([
@@ -144,26 +151,26 @@ if __name__ == "__main__":
     Path('./fuzzed-tests').mkdir(parents=True, exist_ok=True)
     Path('./input_logs').mkdir(parents=True, exist_ok=True)
 
-    # delete data before next run
+    # delete coverage data before next run
     solver_files = [f for f in os.listdir(sut_path) if f.endswith(".gcda")]
     for solver_file in solver_files:
         os.remove(str(sut_path) + '/' + solver_file)
-
 
     COVERAGE = {}
     NUM_LINES = {}
     SAVED_ERRORS = [(0, set(), set()) for _ in range(20)]
 
     num_iterations = 4
-    max_mutations = 5
+    max_mutations = 10
 
     mutation_iterations = 1
     chance_of_mutation = 0.2
     for t_seed in range(seed, seed + num_iterations):
         time_limit = 30 * 60 / num_iterations
+        inputs = [f"{str(input_path)}/{f}" for f in os.listdir(input_path)]
         main(
                 sut_path, 
-                input_path, 
+                inputs, 
                 t_seed,
                 mutation_iterations,
                 chance_of_mutation,
@@ -178,5 +185,5 @@ if __name__ == "__main__":
 
     
 
-    print_coverage_info(COVERAGE, NUM_LINES)
+    print_coverage_info_detailed(COVERAGE, NUM_LINES)
     print_saved_errors(SAVED_ERRORS)
