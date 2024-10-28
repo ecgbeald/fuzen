@@ -43,6 +43,7 @@ class ErrorType(Enum):
     HEAP_BUFFER_OVERFLOW = auto()
 
     REQUESTED_ALLOC_SIZE = auto()
+    CALLOC_OVERFLOW = auto()
 
     STACK_OVERFLOW = auto()
     STACK_BUFFER_OVERFLOW = auto()
@@ -86,6 +87,8 @@ def categorise_error(error_message: str):
 
     if re.search(r"AddressSanitizer: requested allocation size", error_message):
         errors.add(ErrorType.REQUESTED_ALLOC_SIZE)
+    if re.search(r"AddressSanitizer: calloc parameters overflow", error_message):
+        errors.add(ErrorType.CALLOC_OVERFLOW)
 
     if re.search(r"AddressSanitizer: stack-overflow", error_message):
         errors.add(ErrorType.STACK_OVERFLOW)
