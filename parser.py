@@ -53,6 +53,8 @@ class ErrorType(Enum):
     SIG_SEGV = auto()
     SIG_BUS = auto()
 
+    UNKNOWN_CRASH = auto()
+
 
 def categorise_error(error_message: str):
     errors = set()
@@ -101,6 +103,9 @@ def categorise_error(error_message: str):
 
     if re.search(r"AddressSanitizer: BUS on unknown address", error_message):
         errors.add(ErrorType.SIG_BUS)
+
+    if re.search(r"AddressSanitizer: unknown-crash", error_message):
+        errors.add(ErrorType.UNKNOWN_CRASH)
 
     return errors
 
