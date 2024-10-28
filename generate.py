@@ -33,6 +33,8 @@ def generate(output_file, rng):
             literals.append(f"-{lit}")
 
     literals_used = set()
+    literals = list(set(literals))
+    num_literals = len(literals)
     clauses_made = 0
     if rng.random() < 0.4:
         while len(literals_used) < len(literals):

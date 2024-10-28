@@ -147,28 +147,35 @@ def is_number(n):
         return False
     
 def flip_random_number(input_content, rng = random.Random()):
-    tokens = input_content.split(' ')
-    for i in range(100):
-        index = rng.randint(0, len(tokens) - 1)
-        if not is_number(tokens[index]) and not is_number(tokens[index].removeprefix('-')):
-            continue
-        number = int(tokens[index].removeprefix('-'))
-        number = -number if number < 0 else number
-        tokens[index] = str(number)
-        break
-    return ' '.join(tokens)
+    numbers = input_content.split(' ')
+    number = 0
+    index = rng.randint(0, len(numbers) - 1)
+    while not is_number(number) or number == 0:
+        index = rng.randint(0, len(numbers) - 1)
+        number = numbers[index]
+    if "-" in number:
+        new_number = number[1:]
+    else:
+        new_number = "-" + number
+
+    numbers[index] = new_number
+    
+    return ' '.join(numbers)
 
 def add_conflict(input_content, rng = random.Random()):
-    tokens = input_content.split(' ')
-    for i in range(100):
-        index = rng.randint(0, len(tokens) - 1)
-        if not is_number(tokens[index]) and not is_number(tokens[index].removeprefix('-')):
-            continue
-        number = int(tokens[index].removeprefix('-'))
-        number = -number if number < 0 else number
-        tokens.insert(index + 1, str(number))
-        break
-    return ' '.join(tokens)
+    numbers = input_content.split(' ')
+    number = 0
+    index = rng.randint(0, len(numbers) - 1)
+    while not is_number(number) or number == 0:
+        index = rng.randint(0, len(numbers) - 1)
+        number = numbers[index]
+    if "-" in number:
+        new_number = number[1:]
+    else:
+        new_number = "-" + number
+
+    numbers.insert(index + 1, str(number))
+    return ' '.join(numbers)
 
 def mutate(input_file, rng = random.Random(), iterations = 10):
     with open(input_file, "r") as f:
