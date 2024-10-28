@@ -9,21 +9,21 @@ def generate(output_file, rng):
         # low both
         num_literals = rng.randint(1, 5) 
         num_clauses = rng.randint(1, 20)
-    elif rng.random() < 0.5:
+    elif rng.random() < 0.4:
         # lots of clauses
         num_literals = rng.randint(1, 10) 
         num_clauses = rng.randint(1, 100)
-    elif rng.random() < 0.75:
+    elif rng.random() < 0.5:
         # more literals
         num_literals = rng.randint(1, 100) 
         num_clauses = rng.randint(1, 80)
     else:
         # high both
-        num_literals = rng.randint(1, 100) 
-        num_clauses = rng.randint(1, 1000)
+        num_literals = rng.randint(1, 6000) 
+        num_clauses = rng.randint(1, 8000)
     literals = []
     for _ in range(rng.randint(1, num_literals)):
-        lit = str(rng.randint(1, max(50, num_literals - 2)))
+        lit = str(rng.randint(1, max(50, num_literals + 2)))
         if rng.random() < 0.8:
             literals.append(lit)
             literals.append(f"-{lit}")
@@ -32,26 +32,61 @@ def generate(output_file, rng):
         else:
             literals.append(f"-{lit}")
 
-    for _ in range(num_clauses):
-        clause = ""
-        rand = rng.random()
-        if rand < 0.01:
-            # empty clause
-            pass
-        elif rand < 0.1:
-            # small clause
-            for _ in range(rng.randint(1, 5)):
-                clause += rng.choice(literals) + " "
-        elif rand < 0.75:
-            # normal clause
-            for _ in range(rng.randint(1, 50)):
-                clause += rng.choice(literals) + " "
-        else:
-            # big clause
-            for _ in range(rng.randint(1, 200)):
-                clause += rng.choice(literals) + " "
-        clause += "0\n"
-        cnf += clause
+    literals = set(literals)
+    literals = list(literals)
+    num_literals = len(literals)
+    literals_used = set()
+    clauses_made = 0
+
+    if rng.random() < 0.4:
+        while len(literals_used) < len(literals):
+            clause = ""
+            rand = rng.random()
+            if rand < 0.001:
+                # empty clause
+                pass
+            elif rand < 0.95:
+                # small clause
+                for _ in range(rng.randint(2, 3)):
+                    literal = rng.choice(literals)
+                    clause += literal + " "
+                    literals_used.add(literal)
+            elif rand < 0.995:
+                # normal clause
+                for _ in range(rng.randint(0, 30)):
+                    literal = rng.choice(literals)
+                    clause += literal + " "
+                    literals_used.add(literal)
+            else:
+                # big clause
+                for _ in range(rng.randint(0, 200)):
+                    literal = rng.choice(literals)
+                    clause += literal + " "
+                    literals_used.add(literal)
+            clause += "0\n"
+            cnf += clause
+            clauses_made += 1
+    else:
+        for _ in range(num_clauses):
+            clause = ""
+            rand = rng.random()
+            if rand < 0.01:
+                # empty clause
+                pass
+            elif rand < 0.1:
+                # small clause
+                for _ in range(rng.randint(1, 5)):
+                    clause += rng.choice(literals) + " "
+            elif rand < 0.75:
+                # normal clause
+                for _ in range(rng.randint(1, 50)):
+                    clause += rng.choice(literals) + " "
+            else:
+                # big clause
+                for _ in range(rng.randint(1, 200)):
+                    clause += rng.choice(literals) + " "
+            clause += "0\n"
+            cnf += clause
 
     header = "p cnf " + str(num_literals) + " " + str(num_clauses) + "\n"
     cnf = header + cnf

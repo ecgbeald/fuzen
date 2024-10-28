@@ -49,21 +49,29 @@ def add_random_character(input_content, rng = random.Random()):
     return input_content[:index] + rng.choice(punctuation + digits + ascii_lowercase) +input_content[index+1:]
 
 def add_random_number(input_content, rng = random.Random()):
-    index = rng.randint(0, len(input_content) - 1)
+    index = rng.randint(1, len(input_content) - 1)
     lines = input_content.split('\n')
     if rng.random() < PROB_TO_CORRECT:
         lines[0] = change_literal_num(lines[0], 1)
     return input_content[:index] + str(rng.randint(-1000000, 1000000)) + input_content[index:]
 
 def duplicate_line(input_content, rng = random.Random()):
-    lines = input_content.split('\n')
-    line = lines[rng.randint(0, len(lines)-1)]
-    lines.insert(rng.randint(0, len(lines)-1), line)
-    # 50% chance adjust number of clauses to allow for clause removal
-    if rng.random() < PROB_TO_CORRECT:
-        lines[0] = change_clause_num(lines[0], 1)
+    if rng.random() < 0.1:
+        lines = input_content.split('\n')
+        line = lines[rng.randint(0, len(lines)-1)]
+        lines.insert(rng.randint(0, len(lines)-1), line)
+        return '\n'.join(lines)
+    else:
+        lines = input_content.split('\n')
+        if len(lines) < 2:
+            return input_content
+        line = lines[rng.randint(1, len(lines)-1)]
+        lines.insert(rng.randint(1, len(lines)-1), line)
+        # 50% chance adjust number of clauses to allow for clause removal
+        if rng.random() < PROB_TO_CORRECT:
+            lines[0] = change_clause_num(lines[0], 1)
 
-    return '\n'.join(lines)
+        return '\n'.join(lines)
 
 def delete_random_line(input_content, rng = random.Random()):
     lines = input_content.split('\n')
@@ -79,8 +87,14 @@ def delete_random_line(input_content, rng = random.Random()):
 
 def randomize_lines(input_content, rng = random.Random()):
     lines = input_content.split('\n')
-    rng.shuffle(lines)
-    return '\n'.join(lines)
+    if rng.random() < 0.1:
+        rng.shuffle(lines)
+        return '\n'.join(lines)
+    else:
+        header = lines[0]
+        clauses = lines [1:]
+        rng.shuffle(clauses)
+        return '\n'.join([header] + clauses)
 
 def add_trivial_clause(input_content, rng = random.Random()):
     lines = input_content.split('\n')
