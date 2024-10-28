@@ -9,11 +9,11 @@ def generate(output_file, rng):
         # low both
         num_literals = rng.randint(1, 5) 
         num_clauses = rng.randint(1, 20)
-    elif rng.random() < 0.4:
+    elif rng.random() < 0.5:
         # lots of clauses
         num_literals = rng.randint(1, 10) 
         num_clauses = rng.randint(1, 100)
-    elif rng.random() < 0.5:
+    elif rng.random() < 0.75:
         # more literals
         num_literals = rng.randint(1, 100) 
         num_clauses = rng.randint(1, 80)
@@ -23,7 +23,7 @@ def generate(output_file, rng):
         num_clauses = rng.randint(1, 8000)
     literals = []
     for _ in range(rng.randint(1, num_literals)):
-        lit = str(rng.randint(1, max(50, num_literals + 2)))
+        lit = str(rng.randint(1, max(50, num_literals - 2)))
         if rng.random() < 0.8:
             literals.append(lit)
             literals.append(f"-{lit}")
@@ -32,12 +32,8 @@ def generate(output_file, rng):
         else:
             literals.append(f"-{lit}")
 
-    literals = set(literals)
-    literals = list(literals)
-    num_literals = len(literals)
     literals_used = set()
     clauses_made = 0
-
     if rng.random() < 0.4:
         while len(literals_used) < len(literals):
             clause = ""
@@ -87,8 +83,9 @@ def generate(output_file, rng):
                     clause += rng.choice(literals) + " "
             clause += "0\n"
             cnf += clause
+            clauses_made += 1
 
-    header = "p cnf " + str(num_literals) + " " + str(num_clauses) + "\n"
+    header = "p cnf " + str(num_literals) + " " + str(clauses_made) + "\n"
     cnf = header + cnf
 
     with open(output_file, "w") as f:
