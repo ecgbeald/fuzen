@@ -140,11 +140,11 @@ if __name__ == "__main__":
     input_path = args.INPUT_PATH
     seed = args.SEED
 
-    delete_files(
-        inputs = True, 
-        error_logs = True, 
-        input_logs = True
-    )
+    # delete_files(
+    #     inputs = True,
+    #     error_logs = True,
+    #     input_logs = True
+    # )
 
     Path('./error_logs').mkdir(parents=True, exist_ok=True)
     # keep 20 in here
